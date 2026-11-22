@@ -1,0 +1,10 @@
+{
+  "name": "@slotkit/core",
+  "version": "0.1.0",
+  "description": "Game time for slot clients: skippable episodes, signals, GSAP-driven waits, speed profiles, money formatting and diagnostics.",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "peerDependencies": { "gsap": "^3.12.0" },
+  "license": "UNLICENSED",
+  "private": true
+}

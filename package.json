@@ -1,0 +1,56 @@
+{
+  "name": "abyssal-tide",
+  "version": "1.0.0",
+  "description": "Abyssal Tide — 5x3 / 25-line underwater slot with Free Dives and Hold & Win (Salvage). TypeScript + PixiJS v8 + GSAP.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:single": "tsc --noEmit && vite build --mode single",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sim": "tsx scripts/simulate.ts",
+    "e2e": "playwright test",
+    "gallery": "npm run gallery -w @slotkit/symbols-cyanotype",
+    "gallery:build": "npm run gallery:build -w @slotkit/symbols-cyanotype",
+    "server": "npm run dev -w @abyssal-tide/server",
+    "test:pg": "DATABASE_URL=${DATABASE_URL:-postgres://postgres@127.0.0.1:5433/abyssal} vitest run server/tests",
+    "assets": "tsx scripts/build-assets.ts",
+    "video": "node scripts/record-video.mjs"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@esotericsoftware/spine-pixi-v8": "^4.3.13",
+    "@fontsource/big-shoulders-stencil-display": "^5.3.0",
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/fira-sans-condensed": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans-condensed": "^5.3.0",
+    "@slotkit/board": "0.1.0",
+    "@slotkit/controls": "0.1.0",
+    "@slotkit/core": "0.1.0",
+    "@slotkit/paytable": "0.1.0",
+    "@slotkit/symbols-cyanotype": "0.1.0",
+    "gsap": "^3.15.1",
+    "pixi.js": "^8.23.0"
+  },
+  "devDependencies": {
+    "@assetpack/core": "^1.7.0",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^5.1.1"
+  },
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "server"
+  ]
+}

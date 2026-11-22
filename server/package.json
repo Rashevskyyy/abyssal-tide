@@ -1,0 +1,20 @@
+{
+  "name": "@abyssal-tide/server",
+  "version": "0.1.0",
+  "description": "Game server for Abyssal Tide: the same pure engine behind an RGS-style HTTP API, Postgres persistence and server-side crypto RNG.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.1.0",
+    "fastify": "^5.6.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.0"
+  },
+  "license": "UNLICENSED"
+}

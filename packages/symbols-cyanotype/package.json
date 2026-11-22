@@ -1,0 +1,25 @@
+{
+  "name": "@slotkit/symbols-cyanotype",
+  "version": "0.1.0",
+  "description": "Cyanotype (Anna Atkins-style) symbol pack for @slotkit/board: procedural SVG photograms, prebuilt atlas (AssetPack), a Spine big-win character, motion presets and a gallery page.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./assets/*": "./assets/*"
+  },
+  "scripts": {
+    "gallery": "vite gallery",
+    "gallery:build": "vite build gallery --mode single"
+  },
+  "dependencies": {
+    "@slotkit/board": "0.1.0",
+    "@slotkit/core": "0.1.0"
+  },
+  "peerDependencies": {
+    "gsap": "^3.12.0",
+    "pixi.js": "^8.0.0",
+    "@esotericsoftware/spine-pixi-v8": "^4.3.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abyssal Tide — an underwater Hold &amp; Win slot, end to end</title>
+    <meta name="description" content="A portfolio slot built from my own game design document: math, game server, PixiJS client, Spine character and reusable packages." />
+    <style>
+      @font-face { font-family: 'Stencil'; src: url('fonts/stencil-900.woff2') format('woff2'); font-weight: 900; font-display: swap; }
+      @font-face { font-family: 'Plex'; src: url('fonts/plex-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+      @font-face { font-family: 'Plex'; src: url('fonts/plex-400i.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+      @font-face { font-family: 'Plex'; src: url('fonts/plex-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+      @font-face { font-family: 'Plex Mono'; src: url('fonts/mono-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+
+      :root {
+        --mat: #e9eef4;
+        --line: #c3cedc;
+        --ink: #10357a;
+        --deep: #061a40;
+        --soft: #46628f;
+        --paper: #f4f8ff;
+        --coral: #d63a29;
+        --display: 'Stencil', 'Arial Narrow', sans-serif;
+        --text: 'Plex', 'Helvetica Neue', Arial, sans-serif;
+        --mono: 'Plex Mono', 'Courier New', monospace;
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body { margin: 0; color: var(--ink); background: var(--mat); font: 18px/1.62 var(--text); }
+      a { color: var(--coral); text-underline-offset: 3px; }
+      a:focus-visible, button:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; border-radius: 3px; }
+      img, video { display: block; max-width: 100%; }
+
+      .wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+
+      /* ── шапка ── */
+      header { padding: 64px 0 36px; }
+      h1 {
+        margin: 0;
+        font: 900 clamp(64px, 11vw, 148px) / 0.86 var(--display);
+        letter-spacing: 0.005em;
+        color: var(--deep);
+      }
+      .lede { margin: 22px 0 0; max-width: 38ch; font-size: clamp(20px, 2.2vw, 25px); line-height: 1.45; color: var(--ink); }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+      .actions a {
+        display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 4px;
+        font-weight: 600; font-size: 17px; text-decoration: none; color: var(--paper); background: var(--ink);
+      }
+      .actions a:hover { background: var(--deep); }
+      .actions a.quiet { color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
+      .actions a.quiet:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+      /* отпечаток: синя ціанотипія в паспарту — так у грі виглядає поле */
+      .print { margin: 0; }
+      .print .frame {
+        background: radial-gradient(120% 90% at 50% 40%, #1e4f9c 0%, var(--ink) 55%, var(--deep) 100%);
+        border: 14px solid var(--paper);
+        box-shadow: 0 1px 0 var(--line), 0 22px 50px rgba(6, 26, 64, 0.2);
+      }
+      .print video, .print img { width: 100%; height: auto; }
+      figcaption { margin-top: 12px; font: 500 14px/1.5 var(--mono); color: var(--soft); }
+      figcaption b { font-weight: 500; color: var(--ink); }
+      .hero-print { margin-top: 44px; }
+
+      .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 32px; margin: 48px 0 0; padding: 22px 0 0; border-top: 1.5px solid var(--line); }
+      .facts dt { font: 500 14px var(--mono); color: var(--soft); }
+      .facts dd { margin: 4px 0 0; font-size: 17px; }
+
+      /* ── розділи: заголовок ліворуч, текст праворуч ── */
+      section { padding: 72px 0 0; }
+      .row { display: grid; grid-template-columns: 290px minmax(0, 66ch); gap: 0 56px; align-items: start; }
+      h2 { margin: 0; font: 900 44px/0.95 var(--display); color: var(--deep); }
+      .body p { margin: 0 0 14px; }
+      .body p:last-child { margin-bottom: 0; }
+      .body ul { margin: 0 0 14px; padding-left: 20px; }
+      .body li { margin: 6px 0; }
+      .body li::marker { color: var(--soft); }
+      code { font: 500 0.88em var(--mono); color: var(--deep); background: rgba(16, 53, 122, 0.07); padding: 1px 5px; border-radius: 3px; }
+
+      .plates { display: grid; gap: 28px; margin-top: 36px; }
+      .plates.two { grid-template-columns: 1fr 1fr; }
+      .plates.phones { grid-template-columns: 0.42fr 1fr; align-items: end; }
+
+      /* таблиця чисел математики — справжня таблиця даних */
+      table { width: 100%; border-collapse: collapse; margin: 6px 0 16px; font-size: 16px; }
+      th, td { text-align: left; padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { font: 500 14px var(--mono); color: var(--soft); }
+      td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+      .packages { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0; margin: 8px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+      .packages li { padding: 14px 18px 16px 0; border-bottom: 1px solid var(--line); }
+      .packages code { background: none; padding: 0; font-size: 15px; }
+      .packages span { display: block; margin-top: 4px; font-size: 16px; color: var(--soft); }
+
+      footer { margin-top: 96px; padding: 28px 0 48px; border-top: 1.5px solid var(--line); font-size: 16px; color: var(--soft); }
+      footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+
+      @media (max-width: 900px) {
+        .row { grid-template-columns: 1fr; gap: 14px; }
+        h2 { font-size: 38px; }
+        .facts { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 640px) {
+        body { font-size: 17px; }
+        .wrap { padding: 0 18px; }
+        header { padding-top: 40px; }
+        .print .frame { border-width: 8px; }
+        .plates.two, .plates.phones { grid-template-columns: 1fr; }
+        .facts { grid-template-columns: 1fr; }
+        section { padding-top: 56px; }
+      }
+      @media (prefers-reduced-motion: reduce) { video[autoplay] { display: none; } .poster-only { display: block !important; } }
+      .poster-only { display: none; }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <h1>Abyssal Tide</h1>
+      <p class="lede">An underwater Hold &amp; Win slot I built end to end from my own game design document: the math, a game server, the PixiJS client and the packages the next game will start from.</p>
+      <nav class="actions" aria-label="Links">
+        <a href="play/index.html">Play the demo</a>
+        <a class="quiet" href="gallery/index.html">Symbol pack and Spine character</a>
+        <a class="quiet" href="https://github.com/Rashevskyyy/abyssal-tide">Source code</a>
+      </nav>
+
+      <figure class="print hero-print">
+        <div class="frame">
+          <video src="media/abyssal-tide.mp4" poster="media/big-win.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Gameplay: spins, the 3 Pots bonus, a full board and the paytable"></video>
+          <img class="poster-only" src="media/big-win.jpg" alt="A Mega win: the diving-helmet character rises behind the stamp" />
+        </div>
+        <figcaption><b>Plate I.</b> About a minute and a half of play: two spins, the 3 Pots showcase ending in a Mega win, a Deep Salvage to a full board, and the paytable.</figcaption>
+      </figure>
+
+      <dl class="facts">
+        <div><dt>Role</dt><dd>Game design, math, client, server</dd></div>
+        <div><dt>Built with</dt><dd>TypeScript, PixiJS 8, GSAP, Spine, Fastify, PostgreSQL</dd></div>
+        <div><dt>Checked by</dt><dd>79 unit tests (86 with PostgreSQL), 17 end-to-end tests, a 5-million-round simulation</dd></div>
+      </dl>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <div class="row">
+          <h2>The game</h2>
+          <div class="body">
+            <p>A 5×3 slot with 25 lines and two features. <b>Free Dives</b> are free spins with only the high symbols on the reels. <b>Salvage</b> is a Hold &amp; Win: pearls lock in place, every new one resets the respins, a black pearl doubles them all, and sealed shells open at the end.</p>
+            <p>The art follows Anna Atkins’ 1843 cyanotypes: salvaged objects printed as white photograms on Prussian-blue paper and mounted like museum plates. Coral pencil is the only accent, and it marks money and wins. Every image and sound is generated in code.</p>
+          </div>
+        </div>
+        <div class="plates two">
+          <figure class="print"><div class="frame"><img src="media/start.jpg" alt="Start screen with four feature cards" loading="lazy" /></div><figcaption><b>Plate II.</b> The start screen explains the features with the real symbols.</figcaption></figure>
+          <figure class="print"><div class="frame"><img src="media/paytable.jpg" alt="Paytable showing pays in euros for the current bet" loading="lazy" /></div><figcaption><b>Plate III.</b> The paytable shows pays in euros for the current bet.</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <h2>3 Pots</h2>
+          <div class="body">
+            <p>The bonus accumulator I added to the original design. About one base-game spin in five lands a pearl with a coloured mark. The mark flies along a trail into its jar, and each bet level keeps its own jars. A full jar of 30 marks powers the next Salvage and empties:</p>
+            <ul>
+              <li><b>Extra</b> starts the bonus with four respins instead of three.</li>
+              <li><b>Boost</b> adds +1 to +5 bets to every starting pearl.</li>
+              <li><b>Multi</b> multiplies one to three pearls by ×2, ×3 or ×5 at the end.</li>
+            </ul>
+            <table>
+              <thead><tr><th>Simulated over 5,000,000 rounds</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Return to player</td><td class="n">95.9–96.2%</td></tr>
+                <tr><td>Salvage with a given pot active</td><td class="n">about 28.5%</td></tr>
+                <tr><td>Salvage with all three</td><td class="n">13%</td></tr>
+                <tr><td>Average Salvage, no pots / with pots</td><td class="n">35× / 52× bet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="plates two">
+          <figure class="print"><div class="frame"><img src="media/marks.jpg" alt="Marked pearls on the reels and three jars beside the board" loading="lazy" /></div><figcaption><b>Plate IV.</b> Marks land on pearls and fly into the jars.</figcaption></figure>
+          <figure class="print"><div class="frame"><img src="media/salvage-pots.jpg" alt="Salvage board with Extra, Boost and Multi switched on" loading="lazy" /></div><figcaption><b>Plate V.</b> All three jars poured into a Salvage.</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <h2>One engine, two homes</h2>
+          <div class="body">
+            <p>The rules are a pure function, <code>step(state, request, provider)</code>, with no DOM, timers or storage. The same code runs in the browser for the offline demo and on a Node server.</p>
+            <p>The server (Fastify and PostgreSQL) is shaped like a remote game server. It handles sessions, server-side cryptographic RNG and a ledger of every bet and win. Each request is one transaction that locks the player’s row. Repeating a step id, after a double click or a lost response, returns the stored result without a second debit. If the server cannot be reached, the client falls back to offline play and says so.</p>
+            <p>A maximum win cap and market rules sit outside the math. The UK profile follows the Gambling Commission’s technical standards: at least 2.5 seconds per game, no turbo, slam stop or autoplay, no celebration of wins at or below the stake, net position and session time on screen, and a reality check.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <h2>Every screen</h2>
+          <div class="body">
+            <p>The layout is chosen by orientation, not by width. A phone held sideways keeps the side column of controls, while a portrait screen puts them in a row under the board. The HUD scales with the screen, respects notches and the home indicator, and stays next to the game on ultrawide monitors. The board picks whichever of two compositions gives the larger field.</p>
+          </div>
+        </div>
+        <div class="plates phones">
+          <figure class="print"><div class="frame"><img src="media/phone-portrait.jpg" alt="Portrait phone layout" loading="lazy" /></div><figcaption><b>Plate VI.</b> Portrait.</figcaption></figure>
+          <figure class="print"><div class="frame"><img src="media/phone-landscape.jpg" alt="Phone held sideways with the controls in a column" loading="lazy" /></div><figcaption><b>Plate VII.</b> A phone held sideways.</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <h2>Art and Spine</h2>
+          <div class="body">
+            <p>The symbols are drawn as SVG. A build step renders them in headless Chrome, packs them with AssetPack into one atlas, and the game loads the atlas instead of rasterising at start-up.</p>
+            <p>The big-win character is a diving helmet animated in Spine: 16 bones, 13 slots, an intro, a seamless idle loop and an outro. Its skeleton is generated in code in Spine 4.3 JSON and read by the official runtime, and its time runs on the same GSAP clock as the rest of the game, so skipping a win also skips the character.</p>
+          </div>
+        </div>
+        <div class="plates">
+          <figure class="print"><div class="frame"><img src="media/big-win.jpg" alt="Mega win with the diving-helmet character" loading="lazy" /></div><figcaption><b>Plate VIII.</b> The diver surfaces behind the Mega win stamp.</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <h2>For the next game</h2>
+          <div class="body">
+            <p>Everything that is not specific to Abyssal Tide lives in a monorepo of packages:</p>
+            <ul class="packages">
+              <li><code>@slotkit/core</code><span>Game time on GSAP, skippable episodes, speed profiles, money in cents, diagnostics</span></li>
+              <li><code>@slotkit/board</code><span>Reels that stop strictly in order, symbol motion presets, hand-drawn win lines</span></li>
+              <li><code>@slotkit/controls</code><span>Hold-to-spin, a bet grid, autoplay with stop conditions</span></li>
+              <li><code>@slotkit/paytable</code><span>Paytable and rules described as data</span></li>
+              <li><code>@slotkit/symbols-cyanotype</code><span>This art as a pack: SVG, atlas, Spine character, <a href="gallery/index.html">gallery</a></span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Oleksii Rashevskyi, frontend and slot game developer.</span>
+        <span><a href="https://rashevskyi-oleksii.net/work">Portfolio</a> &nbsp; <a href="https://www.linkedin.com/in/rashevskyi-oleksii/">LinkedIn</a></span>
+      </div>
+    </footer>
+
+  </body>
+</html>

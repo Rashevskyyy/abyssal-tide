@@ -1,0 +1,101 @@
+/* Аркуш-зразок: музейне паспарту, на ньому один ціанотипний відбиток із символами. */
+:root {
+  --ink: #10357a;
+  --ink-deep: #061a40;
+  --ink-soft: #4a6a9e;
+  --paper: #f4f8ff;
+  --mat: #e9eef4;
+  --mat-line: #c3cedc;
+  --coral: #ff5b4a;
+  --coral-ink: #c8382a;
+  --ui: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --stencil: 'Big Shoulders Stencil Display', 'Arial Narrow', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 16px/1.55 var(--ui);
+  color: var(--ink);
+  background: var(--mat);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px 40px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 24px 22px;
+}
+
+.title { max-width: 62ch; }
+
+h1 {
+  margin: 0 0 14px;
+  font: 900 clamp(40px, 6vw, 68px) / 0.95 var(--stencil);
+  letter-spacing: 0.01em;
+  color: var(--ink-deep);
+}
+
+.title p { margin: 0; color: var(--ink-soft); }
+
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.tools button {
+  min-height: 40px;
+  padding: 0 14px;
+  font: 600 15px var(--ui);
+  color: var(--paper);
+  background: var(--ink);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tools button:hover { background: var(--ink-deep); }
+.tools button[aria-pressed='true'] { background: var(--coral-ink); }
+.tools button.quiet { color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1.5px var(--mat-line); }
+.tools button:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+
+main { max-width: 1240px; margin: 0 auto; padding: 0 24px 56px; }
+
+.print { margin: 0; }
+
+/* сам відбиток: темний край, як у справжньої ціанотипії, де розчин ліг нерівно */
+#stage, #diver-stage {
+  position: relative;
+  min-height: 320px;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 40%, #1e4f9c 0%, var(--ink) 55%, var(--ink-deep) 100%);
+  border: 12px solid var(--paper);
+  box-shadow: 0 1px 0 var(--mat-line), 0 18px 40px rgba(6, 26, 64, 0.18);
+}
+#stage canvas { display: block; width: 100%; }
+
+figcaption { margin-top: 12px; font-size: 14px; color: var(--ink-soft); max-width: 72ch; }
+
+.spine { margin-top: 48px; }
+.spine-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 32px; margin-bottom: 14px; }
+.spine-head h2 { margin: 0; }
+#diver-stage { min-height: 0; aspect-ratio: 16 / 9; max-height: 560px; }
+
+.notes { margin-top: 40px; max-width: 760px; }
+h2 { margin: 0 0 10px; font: 600 18px var(--ui); }
+pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font: 500 13.5px/1.6 var(--mono);
+  color: var(--paper);
+  background: var(--ink-deep);
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .head { padding-top: 28px; }
+  #stage { border-width: 8px; }
+}

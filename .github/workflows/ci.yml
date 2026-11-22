@@ -1,0 +1,94 @@
+# Перевірка й публікація: типи, юніт-тести (у т.ч. сервер на справжньому Postgres), e2e у Chromium.
+# З main збирається сайт (кейс, гра в /play/, галерея в /gallery/) і завжди лишається артефактом «site»,
+# щоб його можна було викласти будь-де. На GitHub Pages він іде, якщо репозиторій публічний або задано
+# змінну репозиторію PAGES=true (Pages для приватних репозиторіїв є лише на платних планах GitHub).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: abyssal
+          POSTGRES_PASSWORD: abyssal
+          POSTGRES_DB: abyssal
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U abyssal" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://abyssal:abyssal@localhost:5432/abyssal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      # юніт-тести гри й пакетів; тести сервера — і в пам’яті, і на Postgres (є DATABASE_URL)
+      - run: npx vitest run
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
+  site:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # сторінка-кейс у корені сайту, гра (офлайн-демо) — у /play/, галерея символів і Spine — у /gallery/
+      - run: npx vite build
+      - run: npx vite build packages/symbols-cyanotype/gallery --config packages/symbols-cyanotype/gallery/vite.config.ts
+      - run: |
+          mkdir -p _site/play _site/gallery
+          cp -r site/. _site/
+          cp -r dist/. _site/play/
+          cp -r packages/symbols-cyanotype/gallery/dist/. _site/gallery/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site
+          retention-days: 30
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (!github.event.repository.private || vars.PAGES == 'true')
+    needs: site
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

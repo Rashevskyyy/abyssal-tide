@@ -1,0 +1,9 @@
+{
+  "name": "@slotkit/paytable",
+  "version": "0.1.0",
+  "description": "Data-driven paytable and rules for slot games: symbol pays in money, bonus cards, step lists, line diagrams.",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./paytable.css": "./src/paytable.css" },
+  "license": "UNLICENSED",
+  "private": true
+}

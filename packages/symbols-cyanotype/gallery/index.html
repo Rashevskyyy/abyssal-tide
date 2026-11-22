@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cyanotype symbol pack</title>
+    <link rel="stylesheet" href="./gallery.css" />
+  </head>
+  <body>
+    <header class="head">
+      <div class="title">
+        <h1>Cyanotype symbol pack</h1>
+        <p>
+          Sixteen photogram symbols from <i>Abyssal Tide</i>, drawn as SVG and rasterised at load. Each one carries its own win
+          motion, so a new game can reuse the board and swap the pack.
+        </p>
+      </div>
+      <nav class="tools" aria-label="Animations">
+        <button type="button" data-act="land">Land</button>
+        <button type="button" data-act="win">Win</button>
+        <button type="button" data-act="throb">Throb bonus</button>
+        <button type="button" data-act="glint">Glint</button>
+        <button type="button" data-act="lock">Lock</button>
+        <button type="button" data-act="blur" aria-pressed="false">Spin blur</button>
+        <button type="button" data-act="stop" class="quiet">Reset</button>
+      </nav>
+    </header>
+    <main>
+      <figure class="print">
+        <div id="stage" aria-label="Symbol sheet"></div>
+        <figcaption>Click a symbol to play its own win motion. The coral word under each name is its motion preset.</figcaption>
+      </figure>
+      <section class="spine">
+        <div class="spine-head">
+          <h2>Big-win character (Spine)</h2>
+          <nav class="tools" aria-label="Spine animations">
+            <button type="button" data-anim="intro">Intro</button>
+            <button type="button" data-anim="idle">Idle loop</button>
+            <button type="button" data-anim="outro">Outro</button>
+          </nav>
+        </div>
+        <figure class="print">
+          <div id="diver-stage" aria-label="Diver character"></div>
+          <figcaption>
+            The parts are drawn in the same SVG style and packed into a Spine atlas. The skeleton has 16 bones and 13 slots,
+            and three animations: intro, a 2.4 s idle loop and outro.
+          </figcaption>
+        </figure>
+      </section>
+      <section class="notes">
+        <h2>Using the pack</h2>
+<pre><code>const pack = await createCyanotypePack({
+  mono: 'IBM Plex Mono',
+  stencil: 'Big Shoulders Stencil Display',
+});
+const symbol = new SymbolView(pack); // from @slotkit/board
+symbol.set({ s: 'NAUTILUS' });
+symbol.startWin();                   // motion preset "roll"</code></pre>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

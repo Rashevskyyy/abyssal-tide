@@ -1,0 +1,49 @@
+# Гра + ігровий сервер + Postgres одною командою:
+#   docker compose up --build
+#   гра:    http://localhost:8080      (результати рахує сервер)
+#   API:    http://localhost:8787/health
+#   база:   postgres://abyssal:abyssal@localhost:5432/abyssal
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: abyssal
+      POSTGRES_PASSWORD: abyssal
+      POSTGRES_DB: abyssal
+    volumes:
+      - db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U abyssal -d abyssal"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  server:
+    build:
+      context: .
+      target: server
+    environment:
+      DATABASE_URL: postgres://abyssal:abyssal@db:5432/abyssal
+      PORT: "8787"
+      CORS_ORIGIN: http://localhost:8080,http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8787:8787"
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_SERVER_URL: http://localhost:8787
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  db: {}

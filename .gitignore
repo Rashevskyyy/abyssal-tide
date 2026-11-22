@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-single/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+raw-assets/
+packages/*/gallery/dist/
+.assetpack/

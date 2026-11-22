@@ -1,0 +1,9 @@
+{
+  "name": "@slotkit/controls",
+  "version": "0.1.0",
+  "description": "DOM slot controls modelled on 3 Oaks games: hold-to-spin button, bet level grid, autoplay with stop conditions, popover management.",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./controls.css": "./src/controls.css" },
+  "license": "UNLICENSED",
+  "private": true
+}
