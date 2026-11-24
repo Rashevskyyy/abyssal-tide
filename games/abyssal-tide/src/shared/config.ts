@@ -42,12 +42,5 @@ export const POT_SIZE = 30;
 /** Extra: стільки респінів (замість RESPINS) і до стількох лічильник повертається після нової перлини. */
 export const RESPINS_EXTRA = 4;
 
-/**
- * Правила, які оператор чи юрисдикція можуть змінити без зміни математики:
- * максимальний виграш за раунд у ставках. Досягнувши його, раунд одразу закінчується,
- * а решта фіч (Free Dives, Salvage) згорає — так зазвичай пишуть у правилах слотів.
- */
-export interface GameRules {
-  maxWinX: number;
-}
-export const DEFAULT_RULES: GameRules = { maxWinX: 5000 };
+// Max win і решта правил, спільних для всіх ігор, — у @slotkit/rules.
+export { DEFAULT_RULES, type GameRules } from '@slotkit/rules';

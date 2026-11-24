@@ -4,8 +4,8 @@
  *   DATABASE_URL  — Postgres; без нього сервер працює в пам’яті (для швидкої перевірки)
  *   CORS_ORIGIN   — дозволені джерела через кому (за замовчуванням будь-яке — це демо)
  */
-import { RandomOutcomeProvider } from '../../src/engine/outcome';
-import { createCryptoRng } from '../../src/engine/rng';
+import { RandomOutcomeProvider } from '../../games/abyssal-tide/src/engine/outcome';
+import { createCryptoRng } from '../../games/abyssal-tide/src/engine/rng';
 import { buildApp } from './app';
 import { PgRepository } from './pg';
 import { MemoryRepository, type Repository } from './repo';

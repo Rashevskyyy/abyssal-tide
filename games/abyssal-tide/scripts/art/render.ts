@@ -1,7 +1,7 @@
 // Растеризує символи паку й частини «Водолаза» у PNG (data URL) — для збірки атласів.
 import '@fontsource/ibm-plex-mono/latin-500';
 import '@fontsource/big-shoulders-stencil-display/latin-900';
-import { CYANOTYPE_IDS, DIVER_PARTS, rasterSymbol, type CyanotypeArt } from '../../packages/symbols-cyanotype/src';
+import { CYANOTYPE_IDS, DIVER_PARTS, rasterSymbol, type CyanotypeArt } from '../../../../packages/symbols-cyanotype/src';
 
 const MONO = '"IBM Plex Mono", "Courier New", monospace';
 const STENCIL = '"Big Shoulders Stencil Display", "Arial Narrow", sans-serif';

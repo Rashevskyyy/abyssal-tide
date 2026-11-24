@@ -2,14 +2,14 @@
  * Логіка сервера поверх рушія. Рушій той самий, що й в офлайн-демо в браузері (src/engine) —
  * чиста функція step(), тож правила не дублюються; сервер додає лише сесії, транзакції й журнал.
  */
-import { EngineError, initialState, step } from '../../src/engine/engine';
-import type { OutcomeProvider } from '../../src/engine/outcome';
-import { START_BALANCE, TOP_UP_AMOUNT } from '../../src/shared/config';
-import { JURISDICTIONS, type JurisdictionId } from '../../src/shared/jurisdiction';
-import type { StepRequest, StepResult } from '../../src/shared/types';
-import type { RoundRecord, SessionSnapshot } from '../../src/server/protocol';
-import { appendStep, toRecord } from '../../src/server/records';
-import { API_VERSION, type LaunchResponse } from '../../src/server/api';
+import { EngineError, initialState, step } from '../../games/abyssal-tide/src/engine/engine';
+import type { OutcomeProvider } from '../../games/abyssal-tide/src/engine/outcome';
+import { START_BALANCE, TOP_UP_AMOUNT } from '../../games/abyssal-tide/src/shared/config';
+import { JURISDICTIONS, type JurisdictionId } from '../../games/abyssal-tide/src/shared/jurisdiction';
+import type { StepRequest, StepResult } from '../../games/abyssal-tide/src/shared/types';
+import type { RoundRecord, SessionSnapshot } from '../../games/abyssal-tide/src/server/protocol';
+import { appendStep, toRecord } from '../../games/abyssal-tide/src/server/records';
+import { API_VERSION, type LaunchResponse } from '../../games/abyssal-tide/src/server/api';
 import type { LedgerEntry, PlayerState, Repository, SessionInfo } from './repo';
 
 export interface ServiceOptions {

@@ -1,0 +1,23 @@
+{
+  "name": "@games/petrykivka-bloom",
+  "version": "0.1.0",
+  "description": "Petrykivka Bloom — a 7×7 cluster slot with tumbles and cell multipliers, painted in the Petrykivka folk style. TypeScript + PixiJS v8 + GSAP.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sim": "tsx scripts/simulate.ts"
+  },
+  "dependencies": {
+    "@fontsource/fira-sans-condensed": "^5.3.0",
+    "@slotkit/controls": "0.1.0",
+    "@slotkit/core": "0.1.0",
+    "@slotkit/paytable": "0.1.0",
+    "@slotkit/rules": "0.1.0",
+    "gsap": "^3.15.1",
+    "pixi.js": "^8.23.0"
+  }
+}

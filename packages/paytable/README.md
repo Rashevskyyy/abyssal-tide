@@ -31,3 +31,7 @@ el.innerHTML = renderPaytable({
   footnote: 'RTP 95.90%. Demo credits only.',
 });
 ```
+
+## Theming
+
+`paytable.css` reads the game's CSS custom properties with fallbacks: `--ink`, `--ink-soft`, `--mat-line`, `--paper`, `--mono`, `--coral-ink` (amounts), and `--pt-card`, `--pt-art`, `--pt-mini` for card, artwork and payline-diagram backgrounds. Abyssal Tide keeps the light defaults; Petrykivka Bloom sets dark lacquer cards.

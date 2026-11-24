@@ -7,9 +7,9 @@
  * після блокування знаходить уже зафіксований крок і повертає його без другого списання.
  */
 import pg from 'pg';
-import type { StepResult } from '../../src/shared/types';
-import type { JurisdictionId } from '../../src/shared/jurisdiction';
-import type { RoundRecord } from '../../src/server/protocol';
+import type { StepResult } from '../../games/abyssal-tide/src/shared/types';
+import type { JurisdictionId } from '../../games/abyssal-tide/src/shared/jurisdiction';
+import type { RoundRecord } from '../../games/abyssal-tide/src/server/protocol';
 import { newToken, NotFoundError, type PlayerState, type PlayerTx, type Repository, type SessionInfo } from './repo';
 
 export const SCHEMA = `

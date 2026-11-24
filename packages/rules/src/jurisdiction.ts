@@ -7,9 +7,10 @@
  * - RTS 14E: заборонені функції, що прискорюють показ результату чи дають ілюзію контролю (turbo, quick spin, slam stop);
  * - RTS 8A/8C: без автогри;
  * - RTS 14F: не святкувати виграш, що не більший за ставку;
- * - RTS 2E, 13C: показувати чистий результат і час сесії.
+ * - RTS 2E, 13C: показувати чистий результат і час сесії;
+ * - без купівлі бонусу (попередження Gambling Commission щодо feature buy-in).
  */
-import { DEFAULT_RULES, type GameRules } from './config';
+import { DEFAULT_RULES, type GameRules } from './rules';
 
 export type JurisdictionId = 'default' | 'ukgc';
 
@@ -26,6 +27,8 @@ export interface Jurisdiction {
   showSession: boolean;
   /** Нагадування про час гри, хвилин; null — вимкнено. */
   realityCheckMin: number | null;
+  /** Купівля бонусу (feature buy). Британським гравцям недоступна. */
+  allowBonusBuy: boolean;
   rules: GameRules;
 }
 
@@ -38,6 +41,7 @@ export const JURISDICTIONS: Record<JurisdictionId, Jurisdiction> = {
     celebrateAtOrBelowStake: true,
     showSession: false,
     realityCheckMin: null,
+    allowBonusBuy: true,
     rules: DEFAULT_RULES,
   },
   ukgc: {
@@ -48,6 +52,7 @@ export const JURISDICTIONS: Record<JurisdictionId, Jurisdiction> = {
     celebrateAtOrBelowStake: false,
     showSession: true,
     realityCheckMin: 60,
+    allowBonusBuy: false,
     rules: DEFAULT_RULES,
   },
 };

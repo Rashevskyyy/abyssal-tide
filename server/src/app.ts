@@ -4,12 +4,12 @@
  */
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
-import { EngineError } from '../../src/engine/engine';
-import { BETS } from '../../src/shared/config';
-import { isJurisdictionId } from '../../src/shared/jurisdiction';
-import type { Action } from '../../src/shared/types';
-import { PLAYER_ID, STATUS, type ApiError } from '../../src/server/api';
-import type { SourceErrorCode } from '../../src/server/protocol';
+import { EngineError } from '../../games/abyssal-tide/src/engine/engine';
+import { BETS } from '../../games/abyssal-tide/src/shared/config';
+import { isJurisdictionId } from '../../games/abyssal-tide/src/shared/jurisdiction';
+import type { Action } from '../../games/abyssal-tide/src/shared/types';
+import { PLAYER_ID, STATUS, type ApiError } from '../../games/abyssal-tide/src/server/api';
+import type { SourceErrorCode } from '../../games/abyssal-tide/src/server/protocol';
 import type { GameService } from './service';
 import { NotFoundError, type SessionInfo } from './repo';
 
