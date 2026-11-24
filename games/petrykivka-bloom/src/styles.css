@@ -1,0 +1,521 @@
+:root {
+  --lacquer: #16120e;
+  --lacquer-hi: #2a221b;
+  --red: #d7261e;
+  --ochre: #f2b630;
+  --green: #3f8f3a;
+  --cobalt: #2457a6;
+  --cream: #f5efe3;
+  --cream-soft: rgba(245, 239, 227, 0.62);
+  --line: rgba(245, 239, 227, 0.16);
+  /* змінні для @slotkit/controls і @slotkit/paytable */
+  --ink: var(--cream);
+  --paper: var(--lacquer);
+  --mat: #221b15;
+  --mat-line: rgba(245, 239, 227, 0.22);
+  --ink-soft: var(--cream-soft);
+  --mono: 'Fira Sans Condensed', system-ui, sans-serif;
+  --coral-ink: var(--ochre);
+  --pt-card: #261e17;
+  --pt-art: var(--lacquer);
+  --font: 'Fira Sans Condensed', system-ui, sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font);
+  color: var(--cream);
+  background: var(--lacquer);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background:
+    radial-gradient(120% 80% at 35% 40%, #2b2119 0%, var(--lacquer) 70%),
+    var(--lacquer);
+  transition: background-color 0.6s;
+}
+
+html[data-mode='free'] body {
+  background:
+    radial-gradient(120% 80% at 35% 40%, #1d3a74 0%, #0b1a36 72%),
+    #0b1a36;
+}
+
+#stage,
+#stage canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--lacquer);
+  z-index: 50;
+}
+#loader h1 {
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  font-size: 28px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+button:focus-visible {
+  outline: 3px solid var(--ochre);
+  outline-offset: 2px;
+}
+
+/* ── HUD ─────────────────────────────────────────────── */
+#hud {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+}
+
+html[data-layout='landscape'] #hud {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--hud-w);
+  padding: 24px calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) 8px;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+html[data-layout='portrait'] #hud {
+  left: 0;
+  right: 0;
+  top: var(--hud-top);
+  padding: 0 14px calc(12px + var(--safe-b));
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.bar {
+  display: flex;
+  gap: 18px;
+}
+html[data-layout='landscape'] .bar {
+  flex-direction: column;
+  gap: 14px;
+}
+
+.meter small {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--cream-soft);
+}
+.meter b {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+html[data-layout='portrait'] .meter b {
+  font-size: 19px;
+}
+
+.controls {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+html[data-layout='landscape'] .controls {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    'menu sound turbo'
+    'ante ante ante'
+    'buy buy buy'
+    'bet bet bet'
+    'spin spin spin';
+}
+html[data-layout='portrait'] .controls {
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas:
+    'menu sound turbo turbo'
+    'ante buy bet spin';
+}
+[data-menu] { grid-area: menu; }
+[data-sound] { grid-area: sound; }
+[data-turbo] { grid-area: turbo; }
+[data-ante] { grid-area: ante; }
+[data-buy] { grid-area: buy; }
+.bet { grid-area: bet; }
+.spin { grid-area: spin; }
+
+.chip {
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 17px;
+  background: rgba(245, 239, 227, 0.08);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.chip[aria-pressed='true'] {
+  background: var(--ochre);
+  color: var(--lacquer);
+  box-shadow: none;
+}
+html[data-layout='portrait'] [data-turbo] {
+  justify-self: start;
+}
+
+.feature,
+.bet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(245, 239, 227, 0.06);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  text-align: left;
+}
+.feature b,
+.bet b {
+  font-size: 16px;
+  font-weight: 700;
+}
+.feature small,
+.bet small {
+  font-size: 12.5px;
+  color: var(--cream-soft);
+}
+.feature[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--ochre);
+  background: rgba(242, 182, 48, 0.12);
+}
+[data-buy] {
+  box-shadow: inset 0 0 0 1.5px rgba(215, 38, 30, 0.7);
+}
+.bet b {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+html[data-layout='portrait'] .feature,
+html[data-layout='portrait'] .bet {
+  padding: 8px 10px;
+}
+html[data-layout='portrait'] .feature small {
+  display: none;
+}
+
+.spin {
+  justify-self: center;
+  width: 108px;
+  height: 108px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ef4a3f, var(--red) 60%, #9e1712);
+  box-shadow:
+    0 0 0 5px var(--lacquer),
+    0 0 0 8px var(--ochre),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  color: var(--cream);
+  display: grid;
+  place-items: center;
+  transition: transform 0.12s;
+}
+.spin svg {
+  width: 52px;
+  height: 52px;
+}
+.spin:active:not(:disabled) {
+  transform: scale(0.95);
+}
+#hud[data-busy='true'] .spin svg {
+  animation: turn 0.9s linear infinite;
+}
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+html[data-layout='portrait'] .spin {
+  width: 84px;
+  height: 84px;
+}
+html[data-layout='portrait'] .spin svg {
+  width: 40px;
+  height: 40px;
+}
+
+/* панель ставки з @slotkit/controls */
+[data-bet-panel] {
+  position: fixed;
+  z-index: 20;
+}
+html[data-layout='landscape'] [data-bet-panel] {
+  right: calc(var(--hud-w) + 8px);
+  bottom: 24px;
+}
+html[data-layout='portrait'] [data-bet-panel] {
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--safe-b));
+}
+.sk-panel {
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--line);
+}
+.sk-choices button {
+  background: rgba(245, 239, 227, 0.05);
+}
+.sk-choices button[aria-pressed='true'] {
+  background: var(--ochre);
+  color: var(--lacquer);
+}
+
+/* ── бонус ───────────────────────────────────────────── */
+#fs-banner {
+  position: fixed;
+  z-index: 9;
+  top: max(8px, calc(var(--board-top) - 62px));
+  left: var(--board-x);
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: rgba(11, 26, 54, 0.85);
+  box-shadow: inset 0 0 0 1.5px var(--ochre);
+  font-size: 18px;
+  white-space: nowrap;
+}
+#fs-banner b {
+  color: var(--ochre);
+  font-size: 22px;
+}
+#fs-banner span {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 8, 6, 0.62);
+  padding: 20px;
+}
+#overlay[hidden] {
+  display: none;
+}
+#overlay .card {
+  width: min(440px, 100%);
+  padding: 30px 28px 24px;
+  border-radius: 26px;
+  background: var(--lacquer);
+  box-shadow:
+    0 0 0 3px var(--ochre),
+    0 0 0 9px var(--lacquer),
+    0 0 0 11px var(--red),
+    0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  animation: card-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#overlay[data-tone='free'] .card {
+  background: #0f2350;
+}
+#overlay h2 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+#overlay .amount {
+  margin: 6px 0;
+  font-size: 46px;
+  font-weight: 800;
+  color: var(--ochre);
+  font-variant-numeric: tabular-nums;
+}
+#overlay p {
+  margin: 8px 0 0;
+  color: var(--cream-soft);
+  font-size: 17px;
+  line-height: 1.4;
+}
+#overlay .actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 22px;
+}
+#overlay .actions button {
+  min-width: 130px;
+  height: 48px;
+  border: 0;
+  border-radius: 24px;
+  font-weight: 700;
+  font-size: 17px;
+  background: var(--ochre);
+  color: var(--lacquer);
+}
+#overlay .actions [data-no] {
+  background: transparent;
+  color: var(--cream);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+@keyframes card-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+
+/* ── правила ─────────────────────────────────────────── */
+#rules {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(10, 8, 6, 0.7);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+#rules[hidden] {
+  display: none;
+}
+#rules .sheet {
+  width: min(860px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 0 24px 24px;
+  border-radius: 20px;
+  background: #1d1712;
+  box-shadow: inset 0 0 0 1px var(--line);
+  user-select: text;
+}
+#rules header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0 12px;
+  background: #1d1712;
+}
+#rules header h2 {
+  margin: 0;
+  letter-spacing: 0.08em;
+}
+#rules header button,
+.market button {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(245, 239, 227, 0.08);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.market {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: var(--cream-soft);
+}
+.market button[aria-pressed='true'] {
+  background: var(--ochre);
+  color: var(--lacquer);
+}
+#rules h2 {
+  color: var(--ochre);
+}
+#rules .paycard img {
+  background: var(--lacquer);
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hud[data-busy='true'] .spin svg,
+  #overlay .card {
+    animation: none;
+  }
+}
+
+#fs-banner[hidden] {
+  display: none;
+}
+
+/* телефон боком: низький екран, колонка керування стискається */
+@media (max-height: 520px) {
+  html[data-layout='landscape'] #hud {
+    padding: 10px calc(12px + var(--safe-r)) calc(10px + var(--safe-b)) 4px;
+    gap: 8px;
+  }
+  html[data-layout='landscape'] .bar {
+    flex-direction: row;
+    gap: 16px;
+  }
+  html[data-layout='landscape'] .meter b {
+    font-size: 18px;
+  }
+  html[data-layout='landscape'] .controls {
+    gap: 7px;
+    grid-template-areas:
+      'menu sound turbo'
+      'ante ante spin'
+      'buy buy spin'
+      'bet bet spin';
+  }
+  html[data-layout='landscape'] .chip {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+  html[data-layout='landscape'] .feature,
+  html[data-layout='landscape'] .bet {
+    padding: 6px 10px;
+  }
+  html[data-layout='landscape'] .feature small {
+    display: none;
+  }
+  html[data-layout='landscape'] .bet b {
+    font-size: 17px;
+  }
+  html[data-layout='landscape'] .spin {
+    width: 72px;
+    height: 72px;
+  }
+  html[data-layout='landscape'] .spin svg {
+    width: 34px;
+    height: 34px;
+  }
+}

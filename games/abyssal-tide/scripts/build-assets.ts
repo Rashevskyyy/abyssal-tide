@@ -9,15 +9,17 @@
  */
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { AssetPack } from '@assetpack/core';
 import { texturePacker, texturePackerCompress } from '@assetpack/core/texture-packer';
 import { compress } from '@assetpack/core/image';
-import { DIVER_PARTS, diverSkeleton } from '../packages/symbols-cyanotype/src/diver';
+import { DIVER_PARTS, diverSkeleton } from '../../../packages/symbols-cyanotype/src/diver';
 
 const RAW = 'raw-assets';
-const OUT = 'packages/symbols-cyanotype/assets';
+// пакет символів лежить у корені монорепо, скрипт запускається з теки гри
+const OUT = fileURLToPath(new URL('../../../packages/symbols-cyanotype/assets', import.meta.url));
 
 async function render(): Promise<Record<string, string>> {
   const server = await createServer({ root: 'scripts/art', configFile: false, logLevel: 'error', server: { port: 0 } });

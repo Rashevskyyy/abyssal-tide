@@ -1,5 +1,6 @@
-# Перевірка й публікація: типи, юніт-тести (у т.ч. сервер на справжньому Postgres), e2e у Chromium.
-# З main збирається сайт (кейс, гра в /play/, галерея в /gallery/) і завжди лишається артефактом «site»,
+# Перевірка й публікація монорепо: типи, юніт-тести всіх ігор і пакетів (у т.ч. сервер на справжньому Postgres),
+# e2e Abyssal Tide у Chromium. З main збирається сайт (у корені — список ігор; кожна гра у своїй теці
+# з кейсом і демо в play/) і завжди лишається артефактом «site»,
 # щоб його можна було викласти будь-де. На GitHub Pages він іде, якщо репозиторій публічний або задано
 # змінну репозиторію PAGES=true (Pages для приватних репозиторіїв є лише на платних планах GitHub).
 name: CI
@@ -43,12 +44,12 @@ jobs:
       # юніт-тести гри й пакетів; тести сервера — і в пам’яті, і на Postgres (є DATABASE_URL)
       - run: npx vitest run
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: npx playwright test -c games/abyssal-tide
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
-          path: test-results/
+          path: games/abyssal-tide/test-results/
           retention-days: 7
 
   site:
@@ -62,14 +63,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # сторінка-кейс у корені сайту, гра (офлайн-демо) — у /play/, галерея символів і Spine — у /gallery/
-      - run: npx vite build
+      # у корені — список ігор; Abyssal Tide: кейс, демо в play/, галерея символів і Spine у gallery/;
+      # Petrykivka Bloom: демо в play/
+      - run: npm run build -w @games/abyssal-tide
+      - run: npm run build -w @games/petrykivka-bloom
       - run: npx vite build packages/symbols-cyanotype/gallery --config packages/symbols-cyanotype/gallery/vite.config.ts
       - run: |
-          mkdir -p _site/play _site/gallery
+          mkdir -p _site/abyssal-tide/play _site/abyssal-tide/gallery _site/petrykivka-bloom/play
           cp -r site/. _site/
-          cp -r dist/. _site/play/
-          cp -r packages/symbols-cyanotype/gallery/dist/. _site/gallery/
+          cp -r games/abyssal-tide/site/. _site/abyssal-tide/
+          cp -r games/abyssal-tide/dist/. _site/abyssal-tide/play/
+          cp -r packages/symbols-cyanotype/gallery/dist/. _site/abyssal-tide/gallery/
+          cp -r games/petrykivka-bloom/dist/. _site/petrykivka-bloom/play/
+          cp games/petrykivka-bloom/docs/screenshots/poster.jpg _site/petrykivka-bloom/poster.jpg
       - uses: actions/upload-artifact@v4
         with:
           name: site

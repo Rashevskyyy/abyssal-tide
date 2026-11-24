@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
@@ -14,9 +13,5 @@ export default defineConfig(({ mode }) => ({
     target: 'es2022',
     assetsInlineLimit: mode === 'single' ? 100_000_000 : 4096,
     chunkSizeWarningLimit: 2000,
-  },
-  test: {
-    include: ['tests/**/*.spec.ts', 'packages/*/tests/**/*.spec.ts', 'server/tests/**/*.spec.ts'],
-    environment: 'node',
   },
 }));

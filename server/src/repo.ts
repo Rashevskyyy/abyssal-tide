@@ -5,10 +5,10 @@
  * Усі зміни гравця йдуть через `withPlayer`: усередині — одна транзакція й блокування гравця,
  * тож два одночасні запити (подвійний клік, повтор після таймауту) виконуються по черзі.
  */
-import type { EngineState, StepResult } from '../../src/shared/types';
-import type { JurisdictionId } from '../../src/shared/jurisdiction';
-import type { RoundRecord } from '../../src/server/protocol';
-import type { RoundInProgress } from '../../src/server/records';
+import type { EngineState, StepResult } from '../../games/abyssal-tide/src/shared/types';
+import type { JurisdictionId } from '../../games/abyssal-tide/src/shared/jurisdiction';
+import type { RoundRecord } from '../../games/abyssal-tide/src/server/protocol';
+import type { RoundInProgress } from '../../games/abyssal-tide/src/server/records';
 
 export interface PlayerState {
   engine: EngineState;

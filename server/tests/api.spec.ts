@@ -4,12 +4,12 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { board, landing, ScriptedOutcomeProvider, type Script } from '../../src/engine/scripted';
-import { START_BALANCE } from '../../src/shared/config';
-import type { StepResult } from '../../src/shared/types';
-import type { LaunchResponse } from '../../src/server/api';
-import type { OutcomeProvider } from '../../src/engine/outcome';
-import type { RoundRecord, SessionSnapshot } from '../../src/server/protocol';
+import { board, landing, ScriptedOutcomeProvider, type Script } from '../../games/abyssal-tide/src/engine/scripted';
+import { START_BALANCE } from '../../games/abyssal-tide/src/shared/config';
+import type { StepResult } from '../../games/abyssal-tide/src/shared/types';
+import type { LaunchResponse } from '../../games/abyssal-tide/src/server/api';
+import type { OutcomeProvider } from '../../games/abyssal-tide/src/engine/outcome';
+import type { RoundRecord, SessionSnapshot } from '../../games/abyssal-tide/src/server/protocol';
 import { buildApp } from '../src/app';
 import { PgRepository } from '../src/pg';
 import { MemoryRepository, type Repository } from '../src/repo';

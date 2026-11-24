@@ -26,7 +26,7 @@ export default defineConfig({
     },
     {
       // ігровий сервер для тесту гри через HTTP; без DATABASE_URL — у пам’яті
-      command: 'npx tsx server/src/main.ts',
+      command: 'npx tsx ../../server/src/main.ts',
       port: 8788,
       env: { PORT: '8788', DATABASE_URL: process.env.DATABASE_URL ?? '' },
       reuseExistingServer: true,

@@ -1,0 +1,35 @@
+{
+  "name": "@games/abyssal-tide",
+  "version": "1.0.0",
+  "description": "Abyssal Tide — 5x3 / 25-line underwater slot with Free Dives and Hold & Win (Salvage). TypeScript + PixiJS v8 + GSAP.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview",
+    "sim": "tsx scripts/simulate.ts",
+    "e2e": "playwright test",
+    "assets": "tsx scripts/build-assets.ts",
+    "video": "node scripts/record-video.mjs"
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-pixi-v8": "^4.3.13",
+    "@fontsource/big-shoulders-stencil-display": "^5.3.0",
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/fira-sans-condensed": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans-condensed": "^5.3.0",
+    "@slotkit/board": "0.1.0",
+    "@slotkit/controls": "0.1.0",
+    "@slotkit/core": "0.1.0",
+    "@slotkit/paytable": "0.1.0",
+    "@slotkit/rules": "0.1.0",
+    "@slotkit/symbols-cyanotype": "0.1.0",
+    "gsap": "^3.15.1",
+    "pixi.js": "^8.23.0"
+  }
+}

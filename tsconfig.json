@@ -15,5 +15,9 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts", "e2e", "packages/*/src", "packages/*/tests", "packages/*/gallery", "server/src", "server/tests", "vite.config.ts", "playwright.config.ts"]
+  "include": [
+    "games/*/src", "games/*/tests", "games/*/scripts", "games/*/e2e", "games/*/vite.config.ts", "games/*/playwright.config.ts",
+    "packages/*/src", "packages/*/tests", "packages/*/gallery",
+    "server/src", "server/tests", "vitest.config.ts"
+  ]
 }

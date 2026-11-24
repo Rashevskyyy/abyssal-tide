@@ -1,6 +1,6 @@
 # Abyssal Tide game server
 
-The server runs the same pure engine as the offline demo (`src/engine`, `step(state, request, provider)`) behind an HTTP API shaped like a remote game server (RGS). It adds what a browser cannot do on its own:
+The server runs the same pure engine as the offline demo (`games/abyssal-tide/src/engine`, `step(state, request, provider)`) behind an HTTP API shaped like a remote game server (RGS). It adds what a browser cannot do on its own:
 
 - **Server-side RNG.** It uses `crypto.getRandomValues`, with no recoverable seed and unbiased integer ranges. The client only plays back results.
 - **Transactions.** Every request from a player is one Postgres transaction that starts with `SELECT … FOR UPDATE` on that player's state row. The step, the finished round, the ledger entries and the new engine state are committed together or not at all.
@@ -24,7 +24,7 @@ All bodies are JSON. Every endpoint except `/api/launch` needs `Authorization: B
 
 Engine errors map to statuses: `UNAUTHORIZED` 401, `INSUFFICIENT_FUNDS` 402, `UNEXPECTED_ACTION` 409, `INVALID_BET` 422. Bodies are validated with JSON schemas, and invalid ones return 400.
 
-The contract types live in `src/server/api.ts` and are shared with the client (`src/server/RemoteResultSource.ts`).
+The contract types live in `games/abyssal-tide/src/server/api.ts` and are shared with the client (`games/abyssal-tide/src/server/RemoteResultSource.ts`).
 
 ## Run
 

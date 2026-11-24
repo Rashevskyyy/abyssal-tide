@@ -1,0 +1,9 @@
+{
+  "name": "@slotkit/rules",
+  "version": "0.1.0",
+  "description": "Rules shared by every slot: seeded and crypto RNG, max win cap and market profiles (UKGC and default).",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "license": "UNLICENSED",
+  "private": true
+}
