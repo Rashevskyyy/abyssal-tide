@@ -14,6 +14,7 @@ import { CURRENCY } from './shared/config';
 import { PALETTE, buildArt } from './client/art';
 import { BOARD, BoardView, FRAME } from './client/BoardView';
 import { Flow } from './client/Flow';
+import { Fx, pickQuality } from './client/fx/Fx';
 import { Hud } from './client/Hud';
 import { rulesHtml } from './client/rules';
 import { scenarioById } from './client/scenarios';
@@ -48,6 +49,10 @@ async function main(): Promise<void> {
   const sound = new Sound();
   const board = new BoardView(art, sound, formatMoney);
   board.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // сцена, камера й «кіно»; ?fx=low|high перекриває автовибір якості
+  const fx = new Fx(art, pickQuality());
+  board.rich = fx.rich;
+  document.documentElement.dataset.fx = fx.quality;
   const world = new Container();
   const title = new Text({
     text: 'PETRYKIVKA BLOOM',
@@ -56,7 +61,19 @@ async function main(): Promise<void> {
   title.anchor.set(0.5, 1);
   title.position.set(BOARD / 2, -FRAME - 14);
   world.addChild(title, board);
-  app.stage.addChild(world);
+  fx.cam.addChild(world);
+  app.stage.addChild(fx.scene, fx.cam, fx.screen);
+  // поле повідомляє про виграші й вибухи — світло й камера відповідають за силою події
+  board.events = {
+    win: (e) => {
+      if (e.winX >= 1 || e.multiplier >= 4) fx.glow(Math.min(1.8, 0.35 + e.winX * 0.08 + e.multiplier * 0.04), 0.9);
+      if (e.multiplier >= 8 || e.winX >= 10) fx.punch(e.x, e.y, 0.04, 0.55);
+    },
+    burst: (e) => {
+      fx.shockwave(e.x, e.y);
+      if (e.cells >= 12) fx.shake(4 + Math.min(8, e.cells / 4), 0.4);
+    },
+  };
 
   // ?server=http://localhost:8787 або VITE_SERVER_URL під час збірки — гра через сервер;
   // інакше (або якщо він недоступний) — офлайн-демо
@@ -87,6 +104,7 @@ async function main(): Promise<void> {
     openRules: () => rulesHtml({ bet: flow?.bet ?? 100, money: formatMoney, images: art.symbolUrls, market }),
     onMode: (free) => {
       title.visible = !free;
+      fx.scene.setMode(free ? 'free' : 'base');
       sound.music(free ? 'free' : 'base');
     },
     showcase: (id) => {
@@ -103,14 +121,14 @@ async function main(): Promise<void> {
   const muted = localStorage.getItem('petrykivka-bloom:muted') === '1';
   sound.setMuted(muted);
   hud.setMuted(muted);
-  flow = new Flow(board, hud, source, sound, market, formatMoney);
+  flow = new Flow(board, hud, source, sound, market, formatMoney, fx);
   hud.setTurbo(flow.turbo);
   // лише читання — для e2e-тестів і діагностики
   Object.defineProperty(window, '__pb', {
     get: () => ({
       ...flow?.probe,
       /** Сповільнення всього ігрового часу — для запису відео без GPU (scripts/record-video.mjs). */
-      timeScale: (k: number) => gsap.globalTimeline.timeScale(k),
+      timeScale: (k: number): void => void gsap.globalTimeline.timeScale(k),
     }),
   });
   // музика стартує з першою взаємодією: так вимагає політика автоплею браузерів
@@ -151,11 +169,25 @@ async function main(): Promise<void> {
       world.position.set((areaW - BOARD * scale) / 2, (areaH - (BOARD + FRAME) * scale) / 2 + 40 * scale);
     }
     const scale = world.scale.x;
+    fx.layout(
+      w,
+      h,
+      { x: world.position.x - FRAME * scale, y: world.position.y - FRAME * scale, w: (BOARD + FRAME * 2) * scale, h: (BOARD + FRAME * 2) * scale },
+      board.lacquer,
+      { x: -FRAME, y: -FRAME, w: BOARD + FRAME * 2, h: BOARD + FRAME * 2 },
+    );
     root.style.setProperty('--board-top', `${world.position.y - FRAME * scale}px`);
     root.style.setProperty('--board-x', `${world.position.x + (BOARD * scale) / 2}px`);
   };
   layout();
   window.addEventListener('resize', layout);
+  // відблиск пробігає лаком рамки, поки гра стоїть
+  const sheenLoop = () =>
+    gsap.delayedCall(7, () => {
+      if (!flow?.probe.busy && !document.hidden) fx.scene.sweep();
+      sheenLoop();
+    });
+  sheenLoop();
   if (market.showSession) {
     const tick = () => flow?.tickSession();
     tick();

@@ -204,7 +204,7 @@ export class Hud {
   }
 
   /** Повноекранна картка (вхід у бонус, підсумок, великий виграш, купівля). Повертає вибір гравця. */
-  async card(opts: { title: string; body: string; amount?: string; ok: string; cancel?: string; autoMs?: number; tone?: 'free' | 'win' }): Promise<boolean> {
+  async card(opts: { title: string; body: string; amount?: string; ok: string; cancel?: string; autoMs?: number; tone?: 'free' | 'win' | 'big' }): Promise<boolean> {
     const done = new Signal<boolean>();
     this.overlay.dataset.tone = opts.tone ?? 'win';
     this.overlay.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="card-title">
@@ -228,7 +228,7 @@ export class Hud {
 
   /** Лічильник великого виграшу в картці: суми ростуть до фінальної. */
   async countUp(title: string, cents: number, ms: number): Promise<void> {
-    const shown = this.card({ title, body: 'Tap to continue', amount: this.money(0), ok: 'Collect', autoMs: ms + 2200 });
+    const shown = this.card({ title, body: 'Tap to continue', amount: this.money(0), ok: 'Collect', autoMs: ms + 2200, tone: 'big' });
     const amount = this.overlay.querySelector('.amount')!;
     const start = performance.now();
     const tick = () => {

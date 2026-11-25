@@ -8,6 +8,7 @@ import { applyStroke } from '../engine/engine';
 import { BIG_WIN_X, BUY_COST_X, BETS, DEFAULT_BET, EPIC_WIN_X, MEGA_WIN_X, anteCost } from '../shared/config';
 import type { StepResult } from '../shared/types';
 import type { BoardView } from './BoardView';
+import type { Fx } from './fx/Fx';
 import type { Hud } from './Hud';
 import { RandomOutcomeProvider } from '../engine/outcome';
 import type { Scenario } from './scenarios';
@@ -37,6 +38,7 @@ export class Flow {
     private readonly sound: Sound,
     private readonly market: Jurisdiction,
     private readonly money: (cents: number) => string,
+    private readonly fx?: Fx,
   ) {
     const prefs = readPrefs();
     this.bet = BETS.includes(prefs.bet ?? 0) ? prefs.bet! : DEFAULT_BET;
@@ -210,13 +212,26 @@ export class Flow {
 
   private async bigWin(win: number, bet: number): Promise<void> {
     const x = win / bet;
-    const title = x >= EPIC_WIN_X ? 'Epic win' : x >= MEGA_WIN_X ? 'Mega win' : 'Big win';
+    const tier = x >= EPIC_WIN_X ? 3 : x >= MEGA_WIN_X ? 2 : 1;
+    const title = tier === 3 ? 'Epic win' : tier === 2 ? 'Mega win' : 'Big win';
     this.sound.fanfare();
+    const stop = this.fx?.celebrate(tier);
     await this.hud.countUp(title, win, this.market.allowSpeedUp ? 1600 : 2600);
+    stop?.();
   }
 
   private async bonusIntro(res: StepResult): Promise<void> {
     this.sound.fanfare();
+    // кіно: наїзд на тарілку (у купленому бонусі — на центр поля), шторка, ніч, назва бонусу
+    if (this.fx) {
+      const at = res.plates.length ? this.view.cellOnScreen(res.plates[0]) : this.view.cellOnScreen(24);
+      document.documentElement.dataset.cinema = '1'; // HUD ховається, поки йде заставка
+      try {
+        await this.fx.bonusEntry(at, res.freeSpinsTotal, () => this.hud.freeSpins(true, 0, res.freeSpinsTotal, 0));
+      } finally {
+        delete document.documentElement.dataset.cinema;
+      }
+    }
     this.hud.freeSpins(true, 0, res.freeSpinsTotal, 0);
     await this.hud.card({
       title: `${res.freeSpinsTotal} free spins`,
@@ -230,6 +245,8 @@ export class Flow {
   private async bonusSummary(last: StepResult): Promise<void> {
     const celebrate = this.market.celebrateAtOrBelowStake || last.roundWin > last.bet;
     if (celebrate) this.sound.fanfare();
+    const x = last.fsWin / last.bet;
+    const stop = celebrate && x >= BIG_WIN_X ? this.fx?.celebrate(x >= EPIC_WIN_X ? 3 : x >= MEGA_WIN_X ? 2 : 1) : undefined;
     await this.hud.card({
       title: 'Free spins complete',
       body: `${last.freeSpinsTotal} spins played.`,
@@ -238,6 +255,7 @@ export class Flow {
       autoMs: 8000,
       tone: 'free',
     });
+    stop?.();
     this.hud.setWin(last.roundWin);
   }
 
