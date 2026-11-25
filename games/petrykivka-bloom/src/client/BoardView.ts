@@ -180,16 +180,35 @@ export class BoardView extends Container {
     });
   }
 
-  /** Нова сітка падає згори: стовпці один за одним, у стовпці — знизу вгору. */
+  /**
+   * Нова сітка падає згори: стовпці один за одним, у стовпці — знизу вгору.
+   * Якщо дві тарілки вже лягли, решта стовпців затримується й падає повільніше — очікування третьої.
+   */
   async dropIn(grid: Grid, ep: Episode): Promise<void> {
     this.grid = grid.slice();
     const tl = gsap.timeline();
-    for (let i = 0; i < grid.length; i++) {
-      const c = i % COLS;
-      const r = Math.floor(i / COLS);
-      const s = this.makeSprite(grid[i], i, -ROWS - 1);
-      this.sprites[i] = s;
-      tl.to(s, { y: center(i).y, duration: this.t(0.42), ease: 'bounce.out' }, this.t(c * 0.06 + (ROWS - 1 - r) * 0.025));
+    let plates = 0;
+    let extra = 0;
+    let waiting = false;
+    for (let c = 0; c < COLS; c++) {
+      if (plates >= 2 && !waiting && !this.reducedMotion) {
+        waiting = true;
+        const at = this.t(c * 0.06 + 0.35);
+        const glow = new Graphics().roundRect(c * CELL, 0, (COLS - c) * CELL, BOARD, 18).fill({ color: 0xf2b630, alpha: 1 });
+        glow.alpha = 0;
+        this.fx.addChild(glow);
+        tl.to(glow, { alpha: 0.16, duration: this.t(0.3), yoyo: true, repeat: 3, ease: 'sine.inOut', onComplete: () => glow.destroy() }, at);
+        tl.call(() => this.sound.anticipate(this.t(1)), [], at);
+        extra = this.t(1.1);
+      }
+      for (let r = 0; r < ROWS; r++) {
+        const i = r * COLS + c;
+        const s = this.makeSprite(grid[i], i, -ROWS - 1);
+        this.sprites[i] = s;
+        const slow = waiting ? 1.5 : 1;
+        tl.to(s, { y: center(i).y, duration: this.t(0.42 * slow), ease: 'bounce.out' }, this.t(c * 0.06 + (ROWS - 1 - r) * 0.025) + extra);
+        if (grid[i] === 'PLATE') plates++;
+      }
     }
     tl.call(() => this.sound.land(), [], this.t(0.25));
     await ep.play(tl);

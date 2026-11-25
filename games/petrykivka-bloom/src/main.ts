@@ -16,7 +16,9 @@ import { BOARD, BoardView, FRAME } from './client/BoardView';
 import { Flow } from './client/Flow';
 import { Hud } from './client/Hud';
 import { rulesHtml } from './client/rules';
-import { LocalSource } from './client/source';
+import { scenarioById } from './client/scenarios';
+import { RemoteSource } from './client/remote';
+import { LocalSource, type ResultSource } from './client/source';
 import { Sound } from './client/sound';
 
 const MARKET_KEY = 'petrykivka-bloom:market';
@@ -56,20 +58,41 @@ async function main(): Promise<void> {
   world.addChild(title, board);
   app.stage.addChild(world);
 
-  const source = new LocalSource(new RandomOutcomeProvider(createRng()), market.rules);
+  // ?server=http://localhost:8787 або VITE_SERVER_URL під час збірки — гра через сервер;
+  // інакше (або якщо він недоступний) — офлайн-демо
+  const serverUrl = new URLSearchParams(location.search).get('server') ?? import.meta.env.VITE_SERVER_URL;
+  let source: ResultSource = new LocalSource(new RandomOutcomeProvider(createRng()), market.rules);
+  let offlineNotice = false;
+  if (serverUrl) {
+    const remote = new RemoteSource(serverUrl, market.id);
+    try {
+      await remote.connect();
+      source = remote;
+      document.documentElement.dataset.source = 'server';
+    } catch {
+      offlineNotice = true;
+    }
+  }
   let flow: Flow | null = null;
   const hud = new Hud(formatMoney, market, {
     spin: () => void flow?.spin(),
     buy: () => void flow?.buy(),
     setBet: (v) => flow?.setBet(v),
     setAnte: (on) => flow?.setAnte(on),
-    setTurbo: (on) => (board.speed = on ? 0.55 : 1),
+    setTurbo: (on) => flow?.setTurbo(on),
     setMuted: (m) => {
       sound.setMuted(m);
       localStorage.setItem('petrykivka-bloom:muted', m ? '1' : '0');
     },
     openRules: () => rulesHtml({ bet: flow?.bet ?? 100, money: formatMoney, images: art.symbolUrls, market }),
-    onMode: (free) => (title.visible = !free),
+    onMode: (free) => {
+      title.visible = !free;
+      sound.music(free ? 'free' : 'base');
+    },
+    showcase: (id) => {
+      const sc = scenarioById(id);
+      if (sc) void flow?.showcase(sc);
+    },
     setMarket: (id: JurisdictionId) => {
       localStorage.setItem(MARKET_KEY, id);
       const url = new URL(location.href);
@@ -81,6 +104,22 @@ async function main(): Promise<void> {
   sound.setMuted(muted);
   hud.setMuted(muted);
   flow = new Flow(board, hud, source, sound, market, formatMoney);
+  hud.setTurbo(flow.turbo);
+  // лише читання — для e2e-тестів і діагностики
+  Object.defineProperty(window, '__pb', {
+    get: () => ({
+      ...flow?.probe,
+      /** Сповільнення всього ігрового часу — для запису відео без GPU (scripts/record-video.mjs). */
+      timeScale: (k: number) => gsap.globalTimeline.timeScale(k),
+    }),
+  });
+  // музика стартує з першою взаємодією: так вимагає політика автоплею браузерів
+  const startMusic = () => {
+    sound.unlock();
+    sound.music(document.documentElement.dataset.mode === 'free' ? 'free' : 'base');
+  };
+  window.addEventListener('pointerdown', startMusic, { once: true });
+  window.addEventListener('keydown', startMusic, { once: true });
   // тап по полю під час показу — те саме, що «Спін» (пропуск, де дозволено)
   app.canvas.addEventListener('pointerdown', () => void flow?.spin());
 
@@ -123,7 +162,13 @@ async function main(): Promise<void> {
     window.setInterval(tick, 1000);
   }
   document.getElementById('loader')!.remove();
+  if (offlineNotice) {
+    await hud.card({ title: 'Playing offline', body: 'The game server is not reachable, so this is the offline demo with its own balance.', ok: 'OK' });
+  }
   await flow.start();
+  // ?demo=chain|stroke|bonus — посилання з кейсу одразу на потрібну фічу
+  const demo = scenarioById(new URLSearchParams(location.search).get('demo'));
+  if (demo) void flow.showcase(demo);
 }
 
 void main();

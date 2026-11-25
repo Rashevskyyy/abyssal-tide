@@ -15,7 +15,15 @@ function valid(s: unknown): s is EngineState {
   return !!v && typeof v.balance === 'number' && Array.isArray(v.lastGrid) && v.lastGrid.length === CELLS && typeof v.roundSeq === 'number';
 }
 
-export class LocalSource {
+/** Те, що потоку гри потрібно від джерела результатів. */
+export interface ResultSource {
+  readonly state: EngineState;
+  readonly next: ReturnType<typeof expectedAction>;
+  play(req: Omit<StepRequest, 'stepId'>): StepResult | Promise<StepResult>;
+  topUp(): void | Promise<void>;
+}
+
+export class LocalSource implements ResultSource {
   state: EngineState;
   private seq = 0;
 
@@ -57,4 +65,27 @@ export class LocalSource {
       // приватний режим Safari тощо — гра йде без збереження
     }
   }
+}
+
+/** Демо-сценарій: сид RNG і тимчасовий баланс; сесія гравця не змінюється. */
+export class ScenarioSource implements ResultSource {
+  state: EngineState = initialState(TOP_UP_AMOUNT);
+  private seq = 0;
+
+  constructor(
+    private readonly provider: OutcomeProvider,
+    private readonly rules: GameRules,
+  ) {}
+
+  get next() {
+    return expectedAction(this.state);
+  }
+
+  play(req: Omit<StepRequest, 'stepId'>): StepResult {
+    const out = step(this.state, { ...req, ante: false, buy: false, stepId: `S${this.seq++}` }, this.provider, this.rules);
+    this.state = out.state;
+    return out.result;
+  }
+
+  topUp(): void {}
 }

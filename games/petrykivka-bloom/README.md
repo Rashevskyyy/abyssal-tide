@@ -2,13 +2,13 @@
 
 A 7×7 cluster slot with tumbles and **bloom multipliers**, painted in the style of Petrykivka decorative painting. It is the second game in the [slotkit](../../README.md) monorepo: the market rules, controls and paytable come from the shared `@slotkit/*` packages, and the grid engine, math and client are new.
 
-Status: playable demo. The engine, math and client are done. Next: the game server, a case study page and a final pass on art and sound.
+**[Play the demo](https://rashevskyyy.github.io/slotkit/petrykivka-bloom/play/index.html)** · **[Jump to the bonus](https://rashevskyyy.github.io/slotkit/petrykivka-bloom/play/index.html?demo=bonus)** · **[Case study with video](https://rashevskyyy.github.io/slotkit/petrykivka-bloom/)**
 
 | Free spins: flowers stay on the board | The Stroke paints buds before a spin |
 |---|---|
-| ![Mid-bonus board with ×2 to ×16 flowers](docs/screenshots/bonus-flowers.jpg) | ![A brush stroke crossing the empty board](docs/screenshots/stroke.jpg) |
+| ![Mid-bonus board with ×2 to ×16 flowers](site/media/bonus-flowers.jpg) | ![A brush stroke crossing the empty board](site/media/stroke.jpg) |
 | **Phone, portrait** | **Rules on a phone** |
-| <img src="docs/screenshots/phone.jpg" alt="Portrait layout" width="260"> | <img src="docs/screenshots/rules-phone.jpg" alt="Paytable on a phone" width="260"> |
+| <img src="site/media/phone.jpg" alt="Portrait layout" width="260"> | <img src="site/media/rules-phone.jpg" alt="Paytable on a phone" width="260"> |
 
 ## How it plays
 
@@ -26,6 +26,9 @@ Status: playable demo. The engine, math and client are done. Next: the game serv
 - **Money in whole cents.** Pays are stored in twentieths of the bet and bets are multiples of 20 cents, so no win is ever rounded.
 - **Market rules from `@slotkit/rules`.** `?jurisdiction=ukgc` (or *Rules → UK (UKGC)*) applies at least 2.5 s between spins, no turbo or skipping, no bonus buy, no celebration of wins at or below the stake, and the session result and time on screen.
 - **Art and sound in code.** Every symbol is built from the basic Petrykivka brush strokes (the seed, the comb, the curl) on Canvas 2D, each with its own silhouette so the board reads without colour. The Stroke is a PixiJS `MeshRope` along a Bézier curve. Sound is synthesised with WebAudio on a D-minor pentatonic scale: plucked strings, bells and a brush swish.
+- **The same game server.** With `?server=http://localhost:8787` every step goes through the shared Fastify + PostgreSQL server (`/api/petrykivka-bloom/`): one transaction per step, idempotent step ids, a ledger, the UKGC rules enforced on the server. A failed request is retried with the same step id; an unreachable server falls back to the offline demo with a notice.
+- **Feature showcase.** *Rules → See the features* (or `?demo=chain|stroke|bonus`) plays a real round from a fixed seed on a temporary balance. `scripts/find-scenarios.ts` searches the seeds.
+- **Anticipation.** When two plates have landed, the remaining columns pause and fall slower while the board waits for the third.
 - **Layouts for every screen.** The board and the controls sit side by side on a monitor or a phone held sideways, and stack on a portrait phone. Short landscape screens get a compact control column. A bonus in progress continues after a page reload.
 
 ## What it reuses
@@ -47,6 +50,10 @@ npm run dev -w @games/petrykivka-bloom      # http://localhost:5173
 npm test                                    # all unit tests, this game's are in games/petrykivka-bloom/tests
 npm run sim -w @games/petrykivka-bloom -- 10000000 2027 2   # rounds, seed, threads
 npm run build -w @games/petrykivka-bloom    # games/petrykivka-bloom/dist/
+npm run e2e -w @games/petrykivka-bloom      # Playwright; CHROME_PATH=/path/to/chrome to use a system browser
+npm run scenarios -w @games/petrykivka-bloom   # search seeds for the feature showcase
+npm run video -w @games/petrykivka-bloom    # record site/media/petrykivka-bloom.mp4 (needs vite preview on :4175; SLOWMO=0.25 without a GPU)
+npm run server                              # the shared game server on :8787, then open ?server=http://localhost:8787
 ```
 
 ## Layout
@@ -54,10 +61,14 @@ npm run build -w @games/petrykivka-bloom    # games/petrykivka-bloom/dist/
 ```
 src/engine/    grid.ts (clusters, collapse), engine.ts (step), outcome.ts (RNG provider, Stroke), model.ts (weights)
 src/shared/    config, symbols and paytable, step types
-src/client/    art.ts (Canvas brush strokes), BoardView.ts (Pixi), Flow.ts, Hud.ts, rules.ts, sound.ts, source.ts
-scripts/       simulate.ts
+src/client/    art.ts (Canvas brush strokes), BoardView.ts (Pixi), Flow.ts, Hud.ts, rules.ts, sound.ts,
+               source.ts (offline and showcase sources), remote.ts (server source), scenarios.ts
+scripts/       simulate.ts, find-scenarios.ts, record-video.mjs
 tests/         grid, engine and math tests
-docs/          MATH.uk.md, screenshots
+e2e/           Playwright scenarios
+site/          case study page and its media
+docs/          MATH.uk.md
+../../server/src/petrykivka.ts   this game's server routes
 ```
 
 Comments and docs are in Ukrainian, like the rest of the repository; this README is in English.

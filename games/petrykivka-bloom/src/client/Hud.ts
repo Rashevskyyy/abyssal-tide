@@ -6,6 +6,7 @@ import { BetPanel, Popovers, bindSpinButton } from '@slotkit/controls';
 import { Signal } from '@slotkit/core';
 import type { Jurisdiction } from '@slotkit/rules';
 import { BETS, BUY_COST_X, anteCost } from '../shared/config';
+import { SCENARIOS } from './scenarios';
 
 export interface HudHandlers {
   spin(): void;
@@ -16,6 +17,7 @@ export interface HudHandlers {
   setMuted(on: boolean): void;
   openRules(): string;
   setMarket(id: 'default' | 'ukgc'): void;
+  showcase(id: string): void;
   /** Бонус почався чи скінчився (гра ховає назву над полем, її місце займає смуга бонусу). */
   onMode?(free: boolean): void;
 }
@@ -119,6 +121,10 @@ export class Hud {
     });
   }
 
+  setTurbo(on: boolean): void {
+    this.turboBtn.setAttribute('aria-pressed', String(on));
+  }
+
   setMuted(muted: boolean): void {
     this.soundBtn.setAttribute('aria-pressed', String(muted));
     this.soundBtn.textContent = muted ? 'Sound off' : 'Sound on';
@@ -128,9 +134,30 @@ export class Hud {
     this.balanceEl.textContent = this.money(cents);
   }
 
+  private shownWin = 0;
+  private winRaf = 0;
+
   setWin(cents: number, label = 'Win'): void {
+    cancelAnimationFrame(this.winRaf);
+    this.shownWin = cents;
     this.winLabel.textContent = label;
     this.winEl.textContent = cents ? this.money(cents) : '—';
+  }
+
+  /** Виграш росте до нової суми за частку секунди — видно, що каскад щось додав. */
+  rollWin(cents: number, label = 'Win'): void {
+    cancelAnimationFrame(this.winRaf);
+    this.winLabel.textContent = label;
+    const from = this.shownWin;
+    const start = performance.now();
+    const tick = () => {
+      const p = Math.min(1, (performance.now() - start) / 450);
+      const v = Math.round(from + (cents - from) * (1 - (1 - p) ** 2));
+      this.winEl.textContent = v ? this.money(v) : '—';
+      if (p < 1) this.winRaf = requestAnimationFrame(tick);
+    };
+    this.shownWin = cents;
+    tick();
   }
 
   setBet(cents: number, ante: boolean): void {
@@ -217,6 +244,11 @@ export class Hud {
   openRules(): void {
     this.rules.innerHTML = `<div class="sheet">
         <header><h2>Petrykivka Bloom</h2><button type="button" data-close aria-label="Close rules">Close</button></header>
+        <section class="showcase">
+          <h3>See the features</h3>
+          <p>Real rounds from fixed seeds, played on a temporary balance. Your session is not touched.</p>
+          <div>${SCENARIOS.map((sc) => `<button type="button" data-scenario="${sc.id}"><b>${sc.title}</b><small>${sc.text}</small></button>`).join('')}</div>
+        </section>
         <div class="market"><span>Market rules</span>
           <button type="button" data-market="default" aria-pressed="${this.market.id === 'default'}">Default</button>
           <button type="button" data-market="ukgc" aria-pressed="${this.market.id === 'ukgc'}">UK (UKGC)</button>
@@ -232,8 +264,21 @@ export class Hud {
     this.rules.querySelectorAll<HTMLButtonElement>('[data-market]').forEach((b) => {
       b.onclick = () => this.h.setMarket(b.dataset.market as 'default' | 'ukgc');
     });
+    this.rules.querySelectorAll<HTMLButtonElement>('[data-scenario]').forEach((b) => {
+      b.onclick = () => {
+        close();
+        this.h.showcase(b.dataset.scenario!);
+      };
+    });
     this.rules.onkeydown = (e) => e.key === 'Escape' && close();
     $<HTMLButtonElement>(this.rules, '[data-close]').focus();
+  }
+
+  /** Позначка демо-сценарію над полем; null — сценарій закінчився. */
+  showcase(title: string | null): void {
+    const el = document.getElementById('showcase-badge')!;
+    el.hidden = !title;
+    if (title) el.innerHTML = `<b>${title}</b> showcase · temporary balance`;
   }
 
   get currentBet(): number {
