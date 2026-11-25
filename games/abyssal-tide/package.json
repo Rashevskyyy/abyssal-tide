@@ -30,6 +30,7 @@
     "@slotkit/rules": "0.1.0",
     "@slotkit/symbols-cyanotype": "0.1.0",
     "gsap": "^3.15.1",
+    "pixi-filters": "^6.1.5",
     "pixi.js": "^8.23.0"
   }
 }

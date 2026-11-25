@@ -7,7 +7,7 @@
  */
 import gsap from 'gsap';
 import { AdvancedBloomFilter, ShockwaveFilter, ZoomBlurFilter } from 'pixi-filters';
-import { Container, Graphics, MeshRope, Point, Sprite, Text, type Filter } from 'pixi.js';
+import { Container, Graphics, MeshRope, Point, Rectangle, Sprite, Text, type Filter } from 'pixi.js';
 import { PALETTE, type Art } from '../art';
 import { Scene, type Rect } from './Scene';
 import { ray, softDot } from './paint';
@@ -60,7 +60,15 @@ export class Fx {
     this.h = h;
     this.cam.pivot.set(w / 2, h / 2);
     this.cam.position.set(w / 2 + this.offset.x, h / 2 + this.offset.y);
+    // фільтри камери працюють у прямокутнику екрана, а не в межах поля: так центр хвилі = точка на екрані
+    this.cam.filterArea = new Rectangle(0, 0, w, h);
     this.scene.layout(w, h, board, sheenParent, sheenRect);
+  }
+
+  /** Точка екрана → координати всередині області фільтрів (вона рухається разом із камерою). */
+  private local(x: number, y: number): { x: number; y: number } {
+    const o = this.cam.toGlobal({ x: 0, y: 0 });
+    return { x: x - Math.max(0, o.x), y: y - Math.max(0, o.y) };
   }
 
   /** Фільтри на камері живуть лише тоді, коли щось роблять: кожен прохід коштує кадру. */
@@ -89,7 +97,7 @@ export class Fx {
   shockwave(x: number, y: number): void {
     if (!this.shock) return;
     const sh = this.shock;
-    sh.center = { x, y };
+    sh.center = this.local(x, y);
     gsap.killTweensOf(sh);
     gsap.fromTo(sh, { time: 0.001 }, { time: 1.2, duration: 1.1, ease: 'none', onUpdate: () => this.setFilters(), onComplete: () => this.setFilters() });
   }
@@ -138,7 +146,7 @@ export class Fx {
     tl.to(this.cam.scale, { x: 1.9, y: 1.9, duration: 0.75, ease: 'power3.in' }, 0);
     tl.to(this.cam.pivot, { x: at.x, y: at.y, duration: 0.75, ease: 'power2.inOut' }, 0);
     if (this.zoom) {
-      this.zoom.center = { x: at.x, y: at.y };
+      this.zoom.center = this.local(at.x, at.y);
       tl.to(this.zoom, { strength: 0.22, duration: 0.75, ease: 'power2.in', onUpdate: () => this.setFilters() }, 0);
     }
     // 2) розписані кола з точки тарілки до країв екрана
