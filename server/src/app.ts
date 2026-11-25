@@ -12,6 +12,7 @@ import { PLAYER_ID, STATUS, type ApiError } from '../../games/abyssal-tide/src/s
 import type { SourceErrorCode } from '../../games/abyssal-tide/src/server/protocol';
 import type { GameService } from './service';
 import { NotFoundError, type SessionInfo } from './repo';
+import { isPbPlayer, petrykivkaRoutes, type PetrykivkaService } from './petrykivka';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -23,6 +24,8 @@ export interface AppOptions {
   /** Дозволені джерела для CORS: true — будь-яке (демо), рядок — список через кому. */
   corsOrigin?: boolean | string;
   logger?: boolean;
+  /** Друга гра на тому ж сервері й сховищі — маршрути під /api/petrykivka-bloom/. */
+  petrykivka?: PetrykivkaService;
 }
 
 class HttpError extends Error {
@@ -59,7 +62,8 @@ export async function buildApp(service: GameService, opts: AppOptions = {}): Pro
     const h = req.headers.authorization ?? '';
     const token = h.startsWith('Bearer ') ? h.slice(7) : '';
     const s = token ? await service.repo.session(token) : null;
-    if (!s) throw new HttpError('UNAUTHORIZED', 'Missing or unknown session token');
+    // токен іншої гри (petrykivka-bloom:…) до маршрутів Abyssal Tide не підходить
+    if (!s || isPbPlayer(s.playerId)) throw new HttpError('UNAUTHORIZED', 'Missing or unknown session token');
     req.player = s;
   };
 
@@ -109,6 +113,8 @@ export async function buildApp(service: GameService, opts: AppOptions = {}): Pro
 
   app.post('/api/topup', { onRequest: auth }, async (req) => service.topUp(req.player.playerId));
   app.post('/api/reset', { onRequest: auth }, async (req) => service.reset(req.player.playerId));
+
+  if (opts.petrykivka) await app.register(petrykivkaRoutes(opts.petrykivka), { prefix: '/api/petrykivka-bloom' });
 
   return app;
 }

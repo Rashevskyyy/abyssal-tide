@@ -9,24 +9,31 @@ import { BIG_WIN_X, BUY_COST_X, BETS, DEFAULT_BET, EPIC_WIN_X, MEGA_WIN_X, anteC
 import type { StepResult } from '../shared/types';
 import type { BoardView } from './BoardView';
 import type { Hud } from './Hud';
-import type { LocalSource } from './source';
+import { RandomOutcomeProvider } from '../engine/outcome';
+import type { Scenario } from './scenarios';
+import { ScenarioSource, type ResultSource } from './source';
 import type { Sound } from './sound';
 
 const PREFS = 'petrykivka-bloom:prefs:v1';
+/** Турбо: усі анімації в 0,55 від звичайної тривалості. */
+const TURBO = 0.55;
 
 export class Flow {
   private busy = false;
   private ep: Episode | null = null;
-  private lastStart = 0;
+  /** Старт попереднього раунду (performance.now); на початку — «давно», щоб перший спін не чекав. */
+  private lastStart = Number.NEGATIVE_INFINITY;
   bet: number;
   ante: boolean;
   readonly sessionStart = Date.now();
   readonly sessionBalance: number;
+  /** Під час демо-сценарію тут тимчасове джерело; справжня сесія чекає в `live`. */
+  private source: ResultSource;
 
   constructor(
     private readonly view: BoardView,
     private readonly hud: Hud,
-    private readonly source: LocalSource,
+    private readonly live: ResultSource,
     private readonly sound: Sound,
     private readonly market: Jurisdiction,
     private readonly money: (cents: number) => string,
@@ -34,7 +41,21 @@ export class Flow {
     const prefs = readPrefs();
     this.bet = BETS.includes(prefs.bet ?? 0) ? prefs.bet! : DEFAULT_BET;
     this.ante = !!prefs.ante;
-    this.sessionBalance = source.state.balance;
+    this.turbo = !!prefs.turbo && market.allowSpeedUp;
+    this.view.speed = this.turbo ? TURBO : 1;
+    this.source = live;
+    this.sessionBalance = live.state.balance;
+  }
+
+  /** Для тестів і діагностики: лише читання. */
+  get probe() {
+    return {
+      busy: this.busy,
+      balance: this.source.state.balance,
+      next: this.source.next,
+      showcase: this.source !== this.live,
+      liveBalance: this.live.state.balance,
+    };
   }
 
   /** Стартовий стан: сітка, баланс; незавершений бонус продовжується. */
@@ -53,18 +74,30 @@ export class Flow {
     }
   }
 
+  turbo: boolean;
+
   setBet(v: number): void {
     if (this.busy) return;
     this.bet = v;
     this.hud.setBet(v, this.ante);
-    savePrefs({ bet: v, ante: this.ante });
+    this.savePrefs();
   }
 
   setAnte(on: boolean): void {
     if (this.busy) return;
     this.ante = on;
     this.hud.setBet(this.bet, on);
-    savePrefs({ bet: this.bet, ante: on });
+    this.savePrefs();
+  }
+
+  setTurbo(on: boolean): void {
+    this.turbo = on && this.market.allowSpeedUp;
+    this.view.speed = this.turbo ? TURBO : 1;
+    this.savePrefs();
+  }
+
+  private savePrefs(): void {
+    savePrefs({ bet: this.bet, ante: this.ante, turbo: this.turbo });
   }
 
   /** Натискання «Спін»: новий раунд або, під час показу, пропуск анімацій (де ринок дозволяє). */
@@ -102,7 +135,7 @@ export class Flow {
     this.setBusy(true);
     this.lastStart = performance.now();
     try {
-      const res = this.source.play({ action: 'spin', bet: this.bet, ...req });
+      const res = await this.playSafe({ action: 'spin', bet: this.bet, ...req });
       this.hud.setBalance(res.balanceAfter - res.stepWin);
       this.hud.setWin(0);
       if (!res.bought) await this.present(res);
@@ -124,7 +157,7 @@ export class Flow {
     try {
       let last: StepResult | null = null;
       while (this.source.next === 'freeSpin') {
-        const res = this.source.play({ action: 'freeSpin' });
+        const res = await this.playSafe({ action: 'freeSpin' });
         const totalBefore = res.freeSpinsTotal - res.fsAwarded;
         const spinNo = totalBefore - (res.freeSpinsLeft + 1 - res.fsAwarded) + 1;
         this.hud.freeSpins(true, spinNo, totalBefore, res.fsWin - res.stepWin);
@@ -164,7 +197,7 @@ export class Flow {
     for (const t of res.tumbles) {
       await this.view.tumble(t, ep, celebrate);
       shown = Math.min(res.stepWin, shown + t.win);
-      this.hud.setWin(res.mode === 'free' ? baseWin + shown : shown, res.mode === 'free' ? 'Bonus win' : 'Win');
+      this.hud.rollWin(res.mode === 'free' ? baseWin + shown : shown, res.mode === 'free' ? 'Bonus win' : 'Win');
     }
     await this.view.plates(res.plates, ep, res.fsAwarded > 0);
     if (res.maxWin) {
@@ -215,8 +248,50 @@ export class Flow {
   private async lowBalance(): Promise<void> {
     const ok = await this.hud.card({ title: 'Out of demo credits', body: 'Top up with demo credits to keep playing.', ok: 'Top up', cancel: 'Not now' });
     if (ok) {
-      this.source.topUp();
+      await this.source.topUp();
       this.hud.setBalance(this.source.state.balance);
+    }
+  }
+
+  /**
+   * Демо-сценарій: той самий рушій із сидом, знайденим заздалегідь, на тимчасовому балансі.
+   * Після раунду поле й баланс повертаються до справжньої сесії.
+   */
+  async showcase(sc: Scenario): Promise<void> {
+    this.sound.unlock();
+    if (this.busy || this.live.next !== 'spin') return;
+    this.source = new ScenarioSource(new RandomOutcomeProvider(sc.seed), this.market.rules);
+    this.hud.showcase(sc.title);
+    this.hud.setBalance(this.source.state.balance);
+    const ante = this.ante;
+    this.ante = false;
+    try {
+      await this.round({});
+    } finally {
+      this.ante = ante;
+      this.source = this.live;
+      this.hud.showcase(null);
+      this.view.setGrid(this.live.state.lastGrid);
+      this.view.setSpots(new Array(49).fill(0));
+      this.hud.setBalance(this.live.state.balance);
+      this.hud.setBet(this.bet, this.ante);
+      this.hud.setWin(0);
+    }
+  }
+
+  /**
+   * Крок через джерело. Якщо сервер не відповів, гравець бачить, що сталося, і пробує ще раз:
+   * повтор іде з тим самим stepId, тож ставка не спишеться вдруге.
+   */
+  private async playSafe(req: Parameters<ResultSource['play']>[0]): Promise<StepResult> {
+    for (;;) {
+      try {
+        return await this.source.play(req);
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        if (code && code !== 'NETWORK') throw e;
+        await this.hud.card({ title: 'Connection problem', body: 'The game server did not answer. Your bet is safe: trying again repeats the same step.', ok: 'Try again' });
+      }
     }
   }
 
@@ -230,7 +305,7 @@ export class Flow {
   }
 }
 
-function readPrefs(): { bet?: number; ante?: boolean } {
+function readPrefs(): { bet?: number; ante?: boolean; turbo?: boolean } {
   try {
     return JSON.parse(localStorage.getItem(PREFS) ?? '{}');
   } catch {
@@ -238,7 +313,7 @@ function readPrefs(): { bet?: number; ante?: boolean } {
   }
 }
 
-function savePrefs(p: { bet: number; ante: boolean }): void {
+function savePrefs(p: { bet: number; ante: boolean; turbo: boolean }): void {
   try {
     localStorage.setItem(PREFS, JSON.stringify(p));
   } catch {

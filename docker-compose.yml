@@ -1,6 +1,6 @@
 # Гра + ігровий сервер + Postgres одною командою:
 #   docker compose up --build
-#   гра:    http://localhost:8080      (результати рахує сервер)
+#   ігри:   http://localhost:8080 (Abyssal Tide), http://localhost:8080/petrykivka-bloom/ — результати рахує сервер
 #   API:    http://localhost:8787/health
 #   база:   postgres://abyssal:abyssal@localhost:5432/abyssal
 services:

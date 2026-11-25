@@ -10,6 +10,8 @@ import { buildApp } from './app';
 import { PgRepository } from './pg';
 import { MemoryRepository, type Repository } from './repo';
 import { GameService } from './service';
+import { PetrykivkaService } from './petrykivka';
+import { RandomOutcomeProvider as PbOutcomeProvider } from '../../games/petrykivka-bloom/src/engine/outcome';
 
 const port = Number(process.env.PORT ?? 8787);
 const dbUrl = process.env.DATABASE_URL;
@@ -26,7 +28,8 @@ if (dbUrl) {
 
 // RNG на сервері — криптографічний, без сиду; клієнт результат лише показує
 const service = new GameService(repo, new RandomOutcomeProvider(createCryptoRng()));
-const app = await buildApp(service, { corsOrigin: process.env.CORS_ORIGIN || true, logger: true });
+const petrykivka = new PetrykivkaService(repo, new PbOutcomeProvider(createCryptoRng()));
+const app = await buildApp(service, { corsOrigin: process.env.CORS_ORIGIN || true, logger: true, petrykivka });
 
 const stop = async () => {
   await app.close();

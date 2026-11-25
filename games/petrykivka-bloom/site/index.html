@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petrykivka Bloom — a cluster slot where every win plants a flower</title>
+    <meta name="description" content="Case study: a 7×7 cluster slot with tumbles, bloom multipliers up to ×128 and free spins, painted in the Petrykivka folk style. TypeScript, PixiJS v8, GSAP, Fastify and PostgreSQL." />
+    <meta property="og:image" content="media/poster.jpg" />
+    <style>
+      :root {
+        --lacquer: #16120e;
+        --panel: #211a14;
+        --line: rgba(245, 239, 227, 0.14);
+        --cream: #f5efe3;
+        --soft: rgba(245, 239, 227, 0.66);
+        --red: #d7261e;
+        --ochre: #f2b630;
+        --green: #3f8f3a;
+        --cobalt: #2457a6;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--lacquer); color: var(--cream); font: 18px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      a { color: var(--ochre); text-underline-offset: 3px; }
+      a:focus-visible, button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 3px; border-radius: 6px; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+      nav { padding: 18px 0; font-size: 15px; color: var(--soft); }
+      nav a { color: var(--soft); }
+      header { padding: 28px 0 36px; display: grid; gap: 28px; }
+      h1 { margin: 0; font-size: clamp(44px, 7vw, 76px); line-height: 0.95; letter-spacing: -0.015em; font-weight: 800; }
+      .lede { margin: 0; max-width: 58ch; font-size: 21px; color: var(--soft); }
+      .lede strong { color: var(--cream); font-weight: 600; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+      .cta a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 24px; text-decoration: none; color: var(--cream); box-shadow: inset 0 0 0 1.5px var(--line); font-weight: 600; }
+      .cta a.main { background: var(--red); box-shadow: none; }
+      .cta a.bonus { background: var(--ochre); color: var(--lacquer); box-shadow: none; }
+      figure { margin: 0; }
+      .video { border-radius: 18px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px var(--line), 0 30px 80px rgba(0, 0, 0, 0.5); }
+      .video video { display: block; width: 100%; aspect-ratio: 16 / 9; }
+      figcaption { margin-top: 10px; font-size: 15px; color: var(--soft); }
+      section { padding: 44px 0; border-top: 1px solid var(--line); }
+      h2 { margin: 0 0 18px; font-size: 32px; line-height: 1.15; }
+      h3 { margin: 0 0 6px; font-size: 20px; }
+      p { margin: 0 0 14px; max-width: 68ch; }
+      .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+      .rule { padding: 18px 20px; border-radius: 16px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+      .rule p { margin: 0; color: var(--soft); font-size: 16px; }
+      .rule .mark { display: block; width: 28px; height: 6px; border-radius: 3px; margin-bottom: 14px; }
+      .two { display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: start; }
+      .two img { width: 100%; border-radius: 14px; box-shadow: 0 0 0 1px var(--line); }
+      .phones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      ul.points { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+      ul.points li { padding-left: 18px; border-left: 3px solid var(--line); }
+      ul.points li strong { display: block; }
+      table { width: 100%; border-collapse: collapse; font-size: 16px; font-variant-numeric: tabular-nums; }
+      th, td { text-align: left; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--soft); font-weight: 500; }
+      td.num { white-space: nowrap; }
+      code { font-size: 0.92em; color: var(--cream); background: rgba(245, 239, 227, 0.07); padding: 1px 6px; border-radius: 5px; }
+      footer { padding: 36px 0 56px; border-top: 1px solid var(--line); color: var(--soft); font-size: 15px; }
+      @media (max-width: 760px) {
+        .two { grid-template-columns: 1fr; }
+        body { font-size: 17px; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="wrap"><a href="../">slotkit</a> / Petrykivka Bloom</nav>
+    <header class="wrap">
+      <h1>Petrykivka Bloom</h1>
+      <p class="lede">A 7×7 cluster slot where <strong>every win plants a flower</strong>, and the flowers multiply the clusters that land on them. Painted in the style of Petrykivka, the Ukrainian decorative painting, and built on the same kit and server as <a href="../abyssal-tide/">Abyssal Tide</a>.</p>
+      <div class="cta">
+        <a class="main" href="play/index.html">Play the demo</a>
+        <a class="bonus" href="play/index.html?demo=bonus">Jump to the bonus</a>
+        <a href="https://github.com/Rashevskyyy/slotkit/tree/main/games/petrykivka-bloom">Source on GitHub</a>
+      </div>
+      <figure>
+        <div class="video">
+          <video src="media/petrykivka-bloom.mp4" poster="media/poster.jpg" autoplay muted loop playsinline controls preload="metadata"></video>
+        </div>
+        <figcaption>Recorded from the demo: a base spin, the Stroke, a chain of seven tumbles and a free spins bonus where the flowers reach ×128.</figcaption>
+      </figure>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <h2>How it plays</h2>
+        <div class="rules">
+          <div class="rule"><span class="mark" style="background: var(--green)"></span><h3>Clusters and tumbles</h3><p>Five or more matching symbols touching sideways or up and down win. They burst, the rest fall, new symbols drop in, and it repeats while clusters form.</p></div>
+          <div class="rule"><span class="mark" style="background: var(--ochre)"></span><h3>Bloom multipliers</h3><p>A burst leaves a bud. The next win on that cell opens a ×2 flower, then ×4, up to ×128. Flowers under a cluster add up and multiply its pay.</p></div>
+          <div class="rule"><span class="mark" style="background: var(--red)"></span><h3>The Stroke</h3><p>About one spin in 25 starts with a brush stroke across the empty board. Buds bloom behind the brush, a few straight into ×2 flowers.</p></div>
+          <div class="rule"><span class="mark" style="background: var(--cobalt)"></span><h3>Free spins</h3><p>Three or more painted plates give 10 to 20 spins. Flowers stay on the board until the bonus ends, so the multipliers keep growing.</p></div>
+        </div>
+      </section>
+
+      <section class="two">
+        <div>
+          <h2>One call computes the whole spin</h2>
+          <p>The engine is a pure function, <code>step(state, request, provider, rules)</code>. It returns the starting grid, the Stroke, every tumble with its clusters, pays, multipliers, burst cells and refills, and the plates at the end. The client only plays that list back.</p>
+          <p>Because nothing in the rules touches the DOM or a timer, the browser demo, the game server, the tests and the simulator all run the same code. The grid geometry sits in its own module: a flood fill finds clusters and a fall plan tells the client which symbol dropped from which row.</p>
+          <p>Money is in whole cents. Pays are stored in twentieths of the bet and bets are multiples of 20 cents, so no win is ever rounded.</p>
+        </div>
+        <figure><img src="media/stroke.jpg" alt="A red brush stroke crossing the empty 7×7 board, leaving buds behind it" loading="lazy" /><figcaption>The Stroke is a PixiJS MeshRope along a Bézier curve the server chose.</figcaption></figure>
+      </section>
+
+      <section>
+        <h2>Math tuned by simulation</h2>
+        <p>A multi-threaded simulator plays the real engine for 10 million rounds and reports the return to player with a 95% confidence interval. To tune it, I split the RTP into the base game, which is cheap to measure precisely, and bonus values for 10, 12, 15 and 20 spins. The pay scale and symbol weights then set the shape: how often a spin wins and how much of the RTP comes from the bonus.</p>
+        <table>
+          <thead><tr><th>Measure</th><th>Base game</th><th>Ante bet (×1.25)</th><th>Bonus buy (100×)</th></tr></thead>
+          <tbody>
+            <tr><td>Return to player</td><td class="num">96.54% ± 0.99%</td><td class="num">96.29% ± 1.40%</td><td class="num">96.79% ± 0.61%</td></tr>
+            <tr><td>Share from free spins</td><td class="num">42.4%</td><td class="num">53.3%</td><td class="num">all of it</td></tr>
+            <tr><td>Spins that win</td><td class="num">36.8%</td><td class="num">36.7%</td><td class="num">—</td></tr>
+            <tr><td>Free spins</td><td class="num">1 in 233</td><td class="num">1 in 150</td><td class="num">every time</td></tr>
+            <tr><td>Average bonus</td><td class="num">98.9× bet</td><td class="num">100.0× bet</td><td class="num">96.8× bet</td></tr>
+            <tr><td>Max win, 5,000× bet</td><td class="num">1 in 1,000,000</td><td class="num">1 in 555,556</td><td class="num">1 in 3,205</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top: 14px; color: var(--soft)">A bonus is worth more than the number of its spins suggests: 10 spins average about 96× bet, 20 spins about 620×, because each spin plays on bigger flowers than the last.</p>
+      </section>
+
+      <section class="two">
+        <div>
+          <h2>The same server, the same rules for every market</h2>
+          <ul class="points">
+            <li><strong>Game server.</strong> The Fastify and PostgreSQL server built for Abyssal Tide now hosts this game too. Each step is one transaction with a row lock; repeating a step id returns the recorded result, so a double tap or a lost response never charges twice. The ledger always adds up to the balance.</li>
+            <li><strong>Offline when it has to be.</strong> With <code>?server=</code> the game plays through HTTP and survives a reload mid-bonus; if the server is unreachable it switches to the offline demo and says so.</li>
+            <li><strong>UK Gambling Commission profile.</strong> At least 2.5 seconds between spins, no turbo or skipping, no autoplay, no celebration of wins at or below the stake, the session result and time on screen, and no bonus buy. The server rejects a bought bonus too, not just the interface.</li>
+            <li><strong>Feature showcase.</strong> Rules → See the features plays a real round from a fixed seed on a temporary balance, so a reviewer sees the Stroke, a long chain or the bonus in a minute.</li>
+          </ul>
+        </div>
+        <div class="phones">
+          <img src="media/phone.jpg" alt="The game in portrait on a phone, controls under the board" loading="lazy" />
+          <img src="media/rules-phone.jpg" alt="Rules and pays on a phone" loading="lazy" />
+        </div>
+      </section>
+
+      <section>
+        <h2>Art and sound written in code</h2>
+        <p>There are no image or audio files. Every symbol is built on Canvas 2D from the basic Petrykivka brush strokes, the seed, the comb and the curl, and each has its own silhouette so the board reads without colour. The music and effects are synthesised with WebAudio on a D-minor pentatonic scale: plucked strings, bells, a shaker and a brush swish.</p>
+        <figure><img src="media/bonus-flowers.jpg" alt="Free spins in progress with flowers from ×2 to ×16 under the symbols" loading="lazy" style="width: 100%; border-radius: 14px; box-shadow: 0 0 0 1px var(--line)" /></figure>
+      </section>
+
+      <section>
+        <h2>Built on slotkit</h2>
+        <table>
+          <thead><tr><th>Reused from the kit</th><th>New in this game</th></tr></thead>
+          <tbody>
+            <tr><td><code>@slotkit/rules</code>: RNG, max win cap, market profiles</td><td>7×7 grid engine: clusters, tumbles, bloom levels, the Stroke</td></tr>
+            <tr><td><code>@slotkit/core</code>: game time, skippable episodes, money format</td><td>Board view: falling symbols, flowers, the brush stroke</td></tr>
+            <tr><td><code>@slotkit/controls</code>: bet panel, spin button, popovers</td><td>Math model, simulator and seed search for the showcase</td></tr>
+            <tr><td><code>@slotkit/paytable</code>: rules and pays as data</td><td>Art, music and the case study you are reading</td></tr>
+            <tr><td>The game server, its storage and ledger</td><td>Routes for this game under <code>/api/petrykivka-bloom/</code></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Tested</h2>
+        <p>Unit tests cover cluster detection, gravity, pays and multipliers, free spins and retriggers, the max win cap, whole-cent money for every bet and a quick check of the math. The server API is tested in memory and against PostgreSQL. Playwright plays the game in Chromium: a bought bonus to the end, a reload in the middle of free spins, the UK timing rules, the showcase, play through the server, the offline fallback and the phone layout.</p>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <a href="../">All games in slotkit</a> · <a href="https://github.com/Rashevskyyy/slotkit/tree/main/games/petrykivka-bloom">Source</a> · <a href="https://rashevskyi-oleksii.net/work">Portfolio</a> · Oleksii Rashevskyi · Demo credits only, no real money.
+    </footer>
+  </body>
+</html>

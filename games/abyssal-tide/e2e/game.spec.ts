@@ -90,7 +90,9 @@ test('autoplay stops when the balance drops by the set limit, like in 3 Oaks gam
   await boot(page);
   await page.locator('#btn-auto').click();
   await page.locator('#auto-panel [data-n="100"]').click();
-  await page.getByLabel('Stop if balance decreases by').fill('3');
+  // ліміт в одну ставку (€1): спрацьовує за кілька раундів, тож тест не залежить від того,
+  // чи встигне більший програш набігти за відведені раунди
+  await page.getByLabel('Stop if balance decreases by').fill('1');
   await page.getByRole('button', { name: 'Start autoplay' }).click();
   await expect(page.locator('#btn-auto')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#btn-auto')).toHaveAttribute('aria-pressed', 'false', { timeout: 250_000 });
@@ -99,11 +101,11 @@ test('autoplay stops when the balance drops by the set limit, like in 3 Oaks gam
   const last = history[history.length - 1];
   const bonus = last.steps.length > 1; // «зупинити на бонусі» увімкнено за замовчуванням
   expect(history.length).toBeLessThan(100);
-  expect(START - last.balanceBefore).toBeLessThan(300); // до останнього раунду умова ще не виконувалась
-  expect(bonus || START - balance >= 300).toBe(true);
+  expect(START - last.balanceBefore).toBeLessThan(100); // до останнього раунду умова ще не виконувалась
+  expect(bonus || START - balance >= 100).toBe(true);
   // налаштування автогри запам’ятовуються
   await page.locator('#btn-auto').click();
-  await expect(page.getByLabel('Stop if balance decreases by')).toHaveValue('3.00');
+  await expect(page.getByLabel('Stop if balance decreases by')).toHaveValue('1.00');
   await expect(page.locator('#auto-panel [data-n="100"]')).toHaveAttribute('aria-pressed', 'true');
 });
 

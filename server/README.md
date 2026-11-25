@@ -49,3 +49,7 @@ npm run test:pg          # the same scenarios against Postgres (DATABASE_URL, de
 ```
 
 The scenarios cover launch, auth and validation, a single debit for a repeated `stepId`, two identical requests arriving at the same moment, error statuses, a Salvage round interrupted by a new session and finished afterwards (with history and a balanced ledger), and top-up and reset rules.
+
+## Petrykivka Bloom
+
+The same server hosts the second game under `/api/petrykivka-bloom/` (`src/petrykivka.ts`): `launch`, `session`, `play` (`{ stepId, action: 'spin' | 'freeSpin', bet?, ante?, buy? }`), `history`, `topup`, `reset`. It runs that game's pure engine with the same repository, sessions, transactions and ledger. A player of this game is stored as `petrykivka-bloom:<playerId>`, so the two games' states never mix and Abyssal Tide's data stays where it was; a session token of one game is refused by the other's routes. In the UKGC market a bonus buy is rejected by the server, not only hidden in the interface. Tests: `tests/petrykivka.spec.ts`, in memory and against PostgreSQL.

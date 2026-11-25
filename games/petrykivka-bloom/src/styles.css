@@ -519,3 +519,51 @@ html[data-layout='portrait'] [data-bet-panel] {
     height: 34px;
   }
 }
+
+/* ── демо-сценарії ───────────────────────────────────── */
+#showcase-badge {
+  position: fixed;
+  z-index: 9;
+  top: 10px;
+  left: 12px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: rgba(215, 38, 30, 0.9);
+  font-size: 14px;
+}
+.showcase h3 {
+  margin: 4px 0 4px;
+  color: var(--ochre);
+}
+.showcase p {
+  margin: 0 0 10px;
+  color: var(--cream-soft);
+}
+.showcase > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.showcase button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  text-align: left;
+  background: rgba(245, 239, 227, 0.06);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.showcase button b {
+  font-size: 17px;
+}
+.showcase button small {
+  color: var(--cream-soft);
+  font-size: 14px;
+  line-height: 1.35;
+}
+.showcase button:hover {
+  box-shadow: inset 0 0 0 2px var(--ochre);
+}

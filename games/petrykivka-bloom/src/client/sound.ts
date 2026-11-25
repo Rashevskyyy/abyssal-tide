@@ -119,4 +119,101 @@ export class Sound {
   tick(): void {
     this.burst(0.03, 2600, 0.08);
   }
+
+  /** Очікування третьої тарілки: короткий тремоло-рій, що піднімається. */
+  anticipate(seconds: number): void {
+    if (this.quiet) return;
+    for (let k = 0; k < 8; k++) this.pluck(SCALE[2 + (k % 4)] * (1 + k * 0.06), (k * seconds) / 8, 0.08, 0.25);
+  }
+
+  // ───────────── музика: короткий цикл, що грає, поки вкладка видима ─────────────
+
+  private musicMode: 'base' | 'free' | null = null;
+  private musicGain: GainNode | null = null;
+  private nextBeat = 0;
+  private beat = 0;
+  private timer = 0;
+
+  /**
+   * Фонова музика: бурдон (квінта на D), «цимбали» по пентатоніці й легкий бубон.
+   * У фриспінах темп вищий і мелодія щільніша. Кроки плануються наперед (lookahead),
+   * тож ритм рівний навіть коли головний потік зайнятий анімаціями.
+   */
+  music(mode: 'base' | 'free' | null): void {
+    this.musicMode = mode;
+    if (!mode) {
+      window.clearInterval(this.timer);
+      this.timer = 0;
+      this.musicGain?.gain.setTargetAtTime(0, this.ctx?.currentTime ?? 0, 0.3);
+      return;
+    }
+    const c = this.ctx;
+    if (!c || !this.master) return;
+    if (!this.musicGain) {
+      this.musicGain = c.createGain();
+      this.musicGain.connect(this.master);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this.musicGain?.gain.setTargetAtTime(0, c.currentTime, 0.2);
+        else if (this.musicMode) this.musicGain?.gain.setTargetAtTime(0.32, c.currentTime, 0.5);
+      });
+    }
+    this.musicGain.gain.setTargetAtTime(0.32, c.currentTime, 0.6);
+    if (!this.timer) {
+      this.nextBeat = c.currentTime + 0.1;
+      this.timer = window.setInterval(() => this.schedule(), 60);
+    }
+  }
+
+  private schedule(): void {
+    const c = this.ctx;
+    if (!c || !this.musicGain || !this.musicMode || document.hidden) return;
+    const free = this.musicMode === 'free';
+    const step = 60 / (free ? 118 : 92) / 2; // восьмі
+    // мелодія на 16 восьмих: індекси в SCALE, -1 — пауза
+    const tune = free ? [4, 6, 7, 6, 4, 2, 4, 6, 7, 9, 7, 6, 4, 6, 4, 2] : [4, -1, 6, -1, 7, 6, 4, -1, 2, -1, 4, -1, 6, 4, 2, -1];
+    while (this.nextBeat < c.currentTime + 0.25) {
+      const t = this.nextBeat - c.currentTime;
+      const b = this.beat % 16;
+      const note = tune[b];
+      if (note >= 0) this.voice(SCALE[note], t, free ? 0.11 : 0.09, 0.5);
+      if (b % 8 === 0) {
+        this.voice(73.42, t, 0.16, step * 8, 'sine'); // D2 — бурдон
+        this.voice(110, t, 0.08, step * 8, 'sine'); // A2
+      }
+      if (b % 4 === 2 || (free && b % 2 === 1)) this.shaker(t, free ? 0.05 : 0.035);
+      this.nextBeat += step;
+      this.beat++;
+    }
+  }
+
+  private voice(freq: number, at: number, gain: number, dur: number, type: OscillatorType = 'triangle'): void {
+    const c = this.ctx!;
+    const t = c.currentTime + at;
+    const o = c.createOscillator();
+    const v = c.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    v.gain.setValueAtTime(0, t);
+    v.gain.linearRampToValueAtTime(gain, t + (type === 'sine' ? 0.3 : 0.008));
+    v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(v).connect(this.musicGain!);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+
+  private shaker(at: number, gain: number): void {
+    const c = this.ctx!;
+    const t = c.currentTime + at;
+    const src = c.createBufferSource();
+    src.buffer = this.noise;
+    const f = c.createBiquadFilter();
+    f.type = 'highpass';
+    f.frequency.value = 6000;
+    const v = c.createGain();
+    v.gain.setValueAtTime(gain, t);
+    v.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    src.connect(f).connect(v).connect(this.musicGain!);
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + 0.08);
+  }
 }
