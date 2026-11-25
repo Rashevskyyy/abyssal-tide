@@ -372,7 +372,8 @@ export class Light {
     gsap.to(this.level, { boost: 0.8 + tier * 0.35, duration: 0.6, ease: 'power2.out' });
     gsap.killTweensOf(this.halo);
     gsap.to(this.halo, { alpha: 0.18 + tier * 0.06, duration: 0.5 });
-    this.ripple(x, y, 26 + tier * 6, 1.6);
+    // одна хвиля на старті, поки сума ще не виросла; повторні брижі заважали б її читати
+    this.ripple(x, y, 20 + tier * 5, 1.2);
     this.exposure(0.9 + tier * 0.3, 1.1);
     this.punch(x, y, 0.03 + tier * 0.01, 0.8);
     const loops: gsap.core.Animation[] = [];
@@ -382,7 +383,6 @@ export class Light {
         gsap.to({}, { duration: 0.12, repeat: -1, onRepeat: () => { for (let i = 0; i < per; i++) this.bubble(); } }),
       );
       if (this.bloom) loops.push(gsap.to({}, { duration: 0.9, repeat: -1, onRepeat: () => this.exposure(0.45 + tier * 0.15, 0.8) }));
-      if (this.shock && tier >= 2) loops.push(gsap.to({}, { duration: 1.5, repeat: -1, onRepeat: () => this.ripple(x, y, 12 + tier * 4, 1.4) }));
     }
     return () => {
       loops.forEach((l) => l.kill());
