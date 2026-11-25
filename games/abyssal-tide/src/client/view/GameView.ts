@@ -9,6 +9,10 @@ import { settings } from '../core/settings';
 import { play, wait } from '@slotkit/core';
 import { Environment, type SceneName } from './Environment';
 import { Fx, WaveSweep } from './Fx';
+import { Light } from './Light';
+import type { Episode } from '@slotkit/core';
+import { EPIC_WIN_X, MEGA_WIN_X } from '../../shared/config';
+import type { LineWin } from '../../shared/types';
 import { createReels, type GameReels, type GameWins } from './Reels';
 import { SalvageBoard, SalvageHud } from './SalvageView';
 import { Plunge } from './Plunge';
@@ -48,6 +52,8 @@ export class GameView {
   private readonly flyLayer = new Container();
   readonly sweep: WaveSweep;
   readonly plunge: Plunge;
+  /** Світло під водою й камера з фільтрами (лише показ). */
+  readonly light: Light;
   private readonly logo: Sprite;
   private readonly glass: Sprite;
   private readonly frame: Sprite;
@@ -66,6 +72,8 @@ export class GameView {
     readonly audio: AudioEngine,
   ) {
     this.env = new Environment(art);
+    this.light = new Light(art);
+    document.documentElement.dataset.fx = this.light.quality;
     this.sweep = new WaveSweep(art);
     this.plunge = new Plunge(art);
 
@@ -93,7 +101,9 @@ export class GameView {
     this.plate.anchor.set(0, 0.5);
     this.setPlate('surface');
 
-    this.field.addChild(this.glass, this.reels, this.salvage, this.wins);
+    // відблиски сонця лягають і на відбиток — над символами, під олівцевими лініями виграшу
+    this.light.setPrintSize(FW, FH);
+    this.field.addChild(this.glass, this.reels, this.salvage, this.light.print, this.wins);
     this.salvageHud.position.set(FRAME_PAD + 4, 60);
     this.jackpots = new JackpotBar(DESIGN_W, art);
     this.jackpots.position.set(0, JP_Y);
@@ -104,20 +114,23 @@ export class GameView {
     this.salvageHud.layout(FW);
     this.fxHolder.addChild(this.fx);
     this.jars = new Jars(art, { extra: '4 RESPINS', boost: '+VALUE', multi: '×2 – ×5' });
-    this.world.addChild(this.logo, this.salvageHud, this.jackpots, this.jars, this.field, this.frame, this.plate, this.fxHolder, this.flyLayer);
+    const shadow = this.light.shadow(DESIGN_W, FH + FRAME_PAD * 2);
+    this.world.addChild(shadow, this.logo, this.salvageHud, this.jackpots, this.jars, this.field, this.frame, this.plate, this.fxHolder, this.flyLayer);
     this.place(false);
 
 
     // зерно друку поверх усієї сцени
     this.grain = new TilingSprite({ texture: art.fx.grain, width: 64, height: 64 });
     this.grain.alpha = 0.6;
-    app.stage.addChild(this.env, this.world, this.sweep, this.grain, this.plunge);
+    this.light.cam.addChild(this.world);
+    app.stage.addChild(this.env, this.light.back, this.light.cam, this.light.front, this.sweep, this.grain, this.plunge);
     app.ticker.add((tk) => this.update(tk.deltaMS));
   }
 
   private update(dt: number): void {
     const capped = Math.min(dt, 50);
     this.env.update(capped);
+    this.light.update(capped);
     this.reels.update(capped);
     this.salvage.update(capped);
     this.jars.update(capped);
@@ -160,6 +173,8 @@ export class GameView {
     const k = Math.min(area.w / w, area.h / h);
     this.world.scale.set(k);
     this.world.position.set(area.x + (area.w - w * k) / 2 + left * k, area.y + (area.h - h * k) / 2);
+    const f = this.field.getBounds();
+    this.light.layout(screenW, screenH, { x: f.x, y: f.y, w: f.width, h: f.height });
   }
 
   /** Розставляє раму, поле й напис під обране компонування (широке / портретне). */
@@ -168,6 +183,7 @@ export class GameView {
     this.jackpots.arrange(tall);
     const top = topFor(tall);
     this.frame.position.set(0, top);
+    this.light.shadow(DESIGN_W, FH + FRAME_PAD * 2).position.set(0, top);
     this.plate.position.set(FRAME_PAD, top + FH + FRAME_PAD * 1.5);
     this.field.position.set(FRAME_PAD, top + FRAME_PAD);
     this.fxHolder.position.copyFrom(this.field.position);
@@ -331,6 +347,7 @@ export class GameView {
 
   setScene(scene: SceneName): void {
     this.env.set(scene);
+    this.light.setScene(scene, true);
     this.setPlate(scene);
   }
 
@@ -356,6 +373,9 @@ export class GameView {
     const dive = 900 * k;
     gsap.to(this.logo, { alpha: 0, duration: 0.3 });
     this.setPlate('seabed');
+    this.light.setScene('seabed');
+    const c = this.fieldCenterGlobal();
+    this.light.dive(c.x, c.y, 1, dive / 1000);
     await Promise.all([
       this.env.go('seabed', dive),
       this.sweep.play(dive, 1),
@@ -387,6 +407,7 @@ export class GameView {
   /** Відновлення посеред бонусу після перезавантаження. */
   restoreSalvage(grid: Grid, bet: number, superActive: boolean, respins: number, maxRespins = 3): void {
     this.env.set('seabed');
+    this.light.setScene('seabed', true);
     this.setPlate('seabed');
     this.reels.visible = false;
     this.logo.visible = false;
@@ -408,6 +429,9 @@ export class GameView {
     const fade = gsap.timeline();
     fade.to([this.salvage, this.salvageHud], { alpha: 0, duration: ms / 2000 });
     this.setPlate(to);
+    this.light.setScene(to);
+    const c = this.fieldCenterGlobal();
+    this.light.dive(c.x, c.y, -1, ms / 1000);
     await Promise.all([this.env.go(to, ms), this.sweep.play(ms, -1), play(fade), this.plunge.play(-1, this.fieldCenterGlobal(), ms / 1000)]);
     this.salvage.alpha = 1;
     this.showReels(board, bet, mode);
@@ -420,6 +444,9 @@ export class GameView {
     const down = to !== 'surface';
     this.audio.sfx('whoosh', settings.profile.transition);
     this.setPlate(to);
+    this.light.setScene(to);
+    const c = this.fieldCenterGlobal();
+    this.light.dive(c.x, c.y, down ? 1 : -1, ms / 1000);
     await Promise.all([
       this.env.go(to, ms),
       withSweep ? this.sweep.play(ms, down ? 1 : -1) : Promise.resolve(),
@@ -436,6 +463,41 @@ export class GameView {
     for (let i = 0; i < 5; i++) tl.to(this.field, { x: x0 + (Math.random() - 0.5) * strength * 2, duration: 0.03 });
     tl.to(this.field, { x: x0, duration: 0.05 });
     this.shakeTl = tl;
+  }
+
+  /**
+   * Світло на виграші: брижі від середини виграшних символів, засвітка й наближення — за розміром виграшу.
+   * x — виграш у ставках.
+   */
+  winLight(wins: LineWin[], x: number): void {
+    const cells = wins.flatMap((w) => w.positions);
+    if (!cells.length) return;
+    const cx = cells.reduce((s, p) => s + this.cellCenter(p).x, 0) / cells.length;
+    const cy = cells.reduce((s, p) => s + this.cellCenter(p).y, 0) / cells.length;
+    const g = this.field.toGlobal({ x: cx, y: cy });
+    this.light.ripple(g.x, g.y, Math.min(24, 8 + x * 2));
+    if (x >= 2) this.light.exposure(Math.min(1.1, 0.3 + x * 0.06), 0.8);
+    if (x >= 6) this.light.punch(g.x, g.y, 0.025, 0.6);
+  }
+
+  /** Подія на все поле (повне поле в Salvage тощо): брижі від центру й засвітка. */
+  impact(strength = 1): void {
+    const c = this.fieldCenterGlobal();
+    this.light.ripple(c.x, c.y, 20 + strength * 8);
+    this.light.exposure(0.7 + strength * 0.3, 1);
+    this.light.punch(c.x, c.y, 0.03, 0.7);
+  }
+
+  /** Великий виграш: світло й бульбашки навколо штампу з сумою. */
+  async bigWin(amount: number, bet: number, ep: Episode): Promise<void> {
+    const x = amount / bet;
+    const c = this.fieldCenterGlobal();
+    const stop = this.light.celebrate(c.x, c.y, x >= EPIC_WIN_X ? 3 : x >= MEGA_WIN_X ? 2 : 1);
+    try {
+      await this.fx.bigWin(amount, bet, ep);
+    } finally {
+      stop();
+    }
   }
 
   cellCenter(p: Pos): { x: number; y: number } {

@@ -700,13 +700,14 @@ export class GameFlow {
         await this.view.wins.showAll(r.lineWins);
         this.go('bigWin');
         this.view.shake(8);
-        await this.playEpisode((ep) => this.view.fx.bigWin(lineTotal, r.bet, ep));
+        await this.playEpisode((ep) => this.view.bigWin(lineTotal, r.bet, ep));
         this.go('evaluating');
       } else if (quiet) {
         // UKGC RTS 14F: виграш не більший за ставку не святкуємо — лише лінії й сума в смузі
         await this.interruptible(this.view.wins.showAll(r.lineWins));
       } else {
         // символи оживають хвилею, а сума росте великою биркою по центру поля
+        this.view.winLight(r.lineWins, lineTotal / r.bet);
         await this.interruptible(Promise.all([this.view.wins.showAll(r.lineWins), this.view.fx.countWin(lineTotal, r.bet)]).then(() => undefined));
         this.view.fx.finishWin();
       }
@@ -861,6 +862,7 @@ export class GameFlow {
       }
       if (cur.fullBoard) {
         this.view.shake(10);
+        this.view.impact(1.5);
         await this.view.fx.banner(t('fullBoard'), `+${formatMoney(500 * cur.bet)}`, 1500, ep);
       }
       this.go('collect');
@@ -873,7 +875,7 @@ export class GameFlow {
     this.hud.setBalance(collected.balanceAfter, true);
     if (collected.roundAward >= collected.bet * BIG_WIN_X) {
       this.go('bigWin');
-      await this.playEpisode((ep) => this.view.fx.bigWin(collected.roundAward, collected.bet, ep));
+      await this.playEpisode((ep) => this.view.bigWin(collected.roundAward, collected.bet, ep));
     } else {
       const cells = countFilled(collected.salvageGrid ?? cur.salvageGrid ?? []);
       await this.bonusScreen({
