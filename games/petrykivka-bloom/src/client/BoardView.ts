@@ -3,6 +3,7 @@
  * Нічого не рахує — лише програє `StepResult`, який віддав рушій.
  */
 import gsap from 'gsap';
+import { GlowFilter } from 'pixi-filters';
 import { Container, Graphics, MeshRope, Point, Sprite, Text, type Texture } from 'pixi.js';
 import type { Episode } from '@slotkit/core';
 import { fallPlan } from '../engine/grid';
@@ -11,6 +12,23 @@ import type { SymbolId } from '../shared/symbols';
 import type { ClusterWin, Grid, Spots, Stroke, Tumble } from '../shared/types';
 import { PALETTE, type Art } from './art';
 import type { Sound } from './sound';
+import { softDot, sparkle } from './fx/paint';
+
+/** Прибрати символ разом з його анімаціями (щоб твін не писав у знищений спрайт). */
+const kill = (s: Sprite | null | undefined): void => {
+  if (!s) return;
+  gsap.killTweensOf(s);
+  gsap.killTweensOf(s.scale);
+  s.destroy();
+};
+
+/** Що сталося на полі — для камери й світла (координати — на екрані). */
+export interface BoardEvents {
+  /** Кластери засвітились: центр найбільшого, сумарний множник, виграш каскаду в ставках. */
+  win?(e: { x: number; y: number; cells: number; multiplier: number; winX: number }): void;
+  /** Символи вибухнули: центр і скільки клітинок. */
+  burst?(e: { x: number; y: number; cells: number }): void;
+}
 
 export const CELL = 92;
 export const BOARD = CELL * COLS;
@@ -36,12 +54,21 @@ const center = (i: number): { x: number; y: number } => ({
 class SpotView {
   readonly flower: Sprite;
   readonly bud: Sprite;
+  /** М’яке світло під квіткою: що більший множник, то яскравіше. */
+  readonly glow: Sprite;
   readonly badge = new Container();
   private readonly badgeText: Text;
   level = 0;
 
-  constructor(art: Art, i: number, back: Container, front: Container) {
+  constructor(art: Art, i: number, back: Container, front: Container, glowTex: Texture) {
     const { x, y } = center(i);
+    this.glow = new Sprite(glowTex);
+    this.glow.anchor.set(0.5);
+    this.glow.position.set(x, y);
+    this.glow.blendMode = 'add';
+    this.glow.tint = 0xf2b630;
+    this.glow.visible = false;
+    back.addChild(this.glow);
     this.flower = new Sprite(art.flower);
     this.flower.anchor.set(0.5);
     this.flower.position.set(x, y);
@@ -70,7 +97,10 @@ class SpotView {
     this.bud.visible = level === 1;
     this.flower.visible = level >= 2;
     this.badge.visible = level >= 2;
+    this.glow.visible = level >= 2;
     if (level >= 2) {
+      this.glow.scale.set((CELL / 128) * (0.9 + level * 0.12));
+      this.glow.alpha = Math.min(0.85, 0.18 + level * 0.09);
       const s = (0.5 + Math.min(level, 8) * 0.05) * (CELL / 160) * 1.25;
       this.flower.scale.set(s);
       this.flower.alpha = 0.45 + level * 0.06;
@@ -97,6 +127,14 @@ export class BoardView extends Container {
   /** 1 — звичайна швидкість, менше — турбо. */
   speed = 1;
   reducedMotion = false;
+  /** Дорогі ефекти (фільтри світіння): лише на якості high. */
+  rich = true;
+  events: BoardEvents = {};
+  /** Шар у рамці для відблиску лаку (його малює сцена). */
+  readonly lacquer = new Container();
+  private readonly outlines = new Container();
+  private readonly sparkleTex = sparkle();
+  private animating = false;
 
   constructor(
     private readonly art: Art,
@@ -132,10 +170,79 @@ export class BoardView extends Container {
     this.addChild(cells);
     const back = new Container();
     const front = new Container();
-    for (let i = 0; i < ROWS * COLS; i++) this.spots.push(new SpotView(art, i, back, front));
+    const glowTex = softDot('#ffffff');
+    for (let i = 0; i < ROWS * COLS; i++) this.spots.push(new SpotView(art, i, back, front, glowTex));
     const mask = new Graphics().rect(0, 0, BOARD, BOARD).fill(0xffffff);
     this.symbolsLayer.mask = mask;
-    this.addChild(back, mask, this.symbolsLayer, front, this.fx);
+    const lacquerMask = new Graphics().roundRect(-FRAME, -FRAME, BOARD + FRAME * 2, BOARD + FRAME * 2, 34).fill(0xffffff);
+    this.lacquer.mask = lacquerMask;
+    this.addChildAt(this.lacquer, 1);
+    this.addChild(lacquerMask, back, mask, this.symbolsLayer, front, this.outlines, this.fx);
+    this.idle();
+  }
+
+  /** Точка поля в координатах екрана. */
+  private global(x: number, y: number): { x: number; y: number } {
+    const p = this.toGlobal(new Point(x, y));
+    return { x: p.x, y: p.y };
+  }
+
+  /**
+   * Поки поле стоїть, символи живуть: час від часу високий символ хитається, на ньому спалахує іскра.
+   */
+  private idle(): void {
+    gsap.delayedCall(1.6 + Math.random() * 1.8, () => {
+      if (!this.animating && !this.reducedMotion && this.visible && !document.hidden) {
+        const high = this.sprites
+          .map((s, i) => ({ s, i }))
+          .filter(({ s, i }) => s && ['ROOSTER', 'FIREBIRD', 'KALYNA', 'MALLOW', 'PLATE'].includes(this.grid[i]));
+        const pick = high[(Math.random() * high.length) | 0];
+        if (pick?.s) {
+          const s = pick.s;
+          const base = s.rotation;
+          gsap.timeline().to(s, { rotation: base + 0.09, duration: 0.18, ease: 'sine.out' }).to(s, { rotation: base - 0.06, duration: 0.22 }).to(s, { rotation: base, duration: 0.25, ease: 'sine.inOut' });
+          const sp = new Sprite(this.sparkleTex);
+          sp.anchor.set(0.5);
+          sp.blendMode = 'add';
+          sp.position.set(s.x + CELL * 0.22, s.y - CELL * 0.22);
+          sp.scale.set(0);
+          this.fx.addChild(sp);
+          gsap.timeline({ onComplete: () => sp.destroy() })
+            .to(sp.scale, { x: 0.7, y: 0.7, duration: 0.25, ease: 'back.out(3)' })
+            .to(sp, { rotation: 1.2, duration: 0.6 }, 0)
+            .to(sp, { alpha: 0, duration: 0.3 }, 0.3);
+        }
+      }
+      this.idle();
+    });
+  }
+
+  /**
+   * Контур кластера: обхід зовнішніх країв його клітинок, мазок вохрою зі світінням.
+   */
+  private outline(cells: number[], tl: gsap.core.Timeline): Graphics {
+    const set = new Set(cells);
+    const g = new Graphics();
+    const pad = 3;
+    for (const i of cells) {
+      const c = i % COLS;
+      const r = Math.floor(i / COLS);
+      const x0 = c * CELL + pad;
+      const y0 = r * CELL + pad;
+      const x1 = (c + 1) * CELL - pad;
+      const y1 = (r + 1) * CELL - pad;
+      if (r === 0 || !set.has(i - COLS)) g.moveTo(x0, y0).lineTo(x1, y0);
+      if (r === ROWS - 1 || !set.has(i + COLS)) g.moveTo(x0, y1).lineTo(x1, y1);
+      if (c === 0 || !set.has(i - 1)) g.moveTo(x0, y0).lineTo(x0, y1);
+      if (c === COLS - 1 || !set.has(i + 1)) g.moveTo(x1, y0).lineTo(x1, y1);
+    }
+    g.stroke({ width: 5, color: 0xf2b630, cap: 'round', join: 'round' });
+    if (this.rich) g.filters = [new GlowFilter({ distance: 14, outerStrength: 2.4, innerStrength: 0.4, color: 0xffc24a, quality: 0.25 })];
+    g.alpha = 0;
+    this.outlines.addChild(g);
+    tl.to(g, { alpha: 1, duration: this.t(0.16) }, 0);
+    tl.to(g, { alpha: 0.55, duration: this.t(0.18), yoyo: true, repeat: 1 }, this.t(0.16));
+    return g;
   }
 
   private t(seconds: number): number {
@@ -155,7 +262,7 @@ export class BoardView extends Container {
   setGrid(grid: Grid): void {
     this.grid = grid.slice();
     for (let i = 0; i < grid.length; i++) {
-      this.sprites[i]?.destroy();
+      kill(this.sprites[i]);
       this.sprites[i] = this.makeSprite(grid[i], i);
     }
   }
@@ -166,6 +273,7 @@ export class BoardView extends Container {
 
   /** Старі символи падають униз за край сітки (початок спіну). */
   async clearOut(ep: Episode): Promise<void> {
+    this.animating = true;
     const tl = gsap.timeline();
     this.sprites.forEach((s, i) => {
       if (!s) return;
@@ -175,7 +283,7 @@ export class BoardView extends Container {
     });
     await ep.play(tl);
     this.sprites.forEach((s, i) => {
-      s?.destroy();
+      kill(s);
       this.sprites[i] = null;
     });
   }
@@ -212,6 +320,7 @@ export class BoardView extends Container {
     }
     tl.call(() => this.sound.land(), [], this.t(0.25));
     await ep.play(tl);
+    this.animating = false;
   }
 
   /** «Мазок»: пензель веде криву через сітку, слідом розпускаються бутони. */
@@ -262,9 +371,21 @@ export class BoardView extends Container {
 
   /** Один каскад: підсвітка й виплата → вибух і ріст квіток → падіння й нові символи. */
   async tumble(t: Tumble, ep: Episode, celebrate: boolean): Promise<void> {
+    this.animating = true;
     // 1) підсвітка кластерів і суми
     const hl = gsap.timeline();
+    const lines: Graphics[] = [];
+    if (celebrate) {
+      const top = t.clusters.reduce((a, b) => (b.cells.length * b.multiplier > a.cells.length * a.multiplier ? b : a));
+      const pts = top.cells.map(center);
+      const cx = pts.reduce((s2, p2) => s2 + p2.x, 0) / pts.length;
+      const cy = pts.reduce((s2, p2) => s2 + p2.y, 0) / pts.length;
+      const g = this.global(cx, cy);
+      const winX = t.clusters.reduce((s2, c) => s2 + c.units * c.multiplier, 0) / 20;
+      this.events.win?.({ ...g, cells: top.cells.length, multiplier: Math.max(...t.clusters.map((c) => c.multiplier)), winX });
+    }
     for (const cl of t.clusters) {
+      if (celebrate) lines.push(this.outline(cl.cells, hl));
       // без святкування (UKGC, виграш не більший за ставку) символи не підстрибують, сума з’являється тихо
       if (celebrate) {
         for (const i of cl.cells) {
@@ -281,8 +402,14 @@ export class BoardView extends Container {
     await ep.play(hl);
     await ep.wait(this.t(0.25) * 1000);
 
+    for (const g of lines) gsap.to(g, { alpha: 0, duration: 0.2, onComplete: () => g.destroy() });
     // 2) вибух: символи розлітаються пелюстками, клітинки ростуть
     const boom = gsap.timeline();
+    if (celebrate && t.removed.length >= 8) {
+      const pts = t.removed.map(center);
+      const g = this.global(pts.reduce((s2, p2) => s2 + p2.x, 0) / pts.length, pts.reduce((s2, p2) => s2 + p2.y, 0) / pts.length);
+      boom.call(() => this.events.burst?.({ ...g, cells: t.removed.length }), [], this.t(0.12));
+    }
     for (const i of t.removed) {
       const s = this.sprites[i]!;
       boom.to(s.scale, { x: 0, y: 0, duration: this.t(0.22), ease: 'back.in(2)' }, 0);
@@ -303,7 +430,7 @@ export class BoardView extends Container {
     boom.call(() => this.sound.grow(Math.max(...t.removed.map((i) => t.spots[i]))), [], this.t(0.2));
     await ep.play(boom);
     for (const i of t.removed) {
-      this.sprites[i]?.destroy();
+      kill(this.sprites[i]);
       this.sprites[i] = null;
     }
 
@@ -331,6 +458,13 @@ export class BoardView extends Container {
     for (let i = 0; i < next.length; i++) this.sprites[i] = next[i];
     this.grid = t.grid.slice();
     await ep.play(fall);
+    this.animating = false;
+  }
+
+  /** Координати клітинки на екрані — для камери (наприклад, наїзд на тарілку). */
+  cellOnScreen(i: number): { x: number; y: number } {
+    const { x, y } = center(i);
+    return this.global(x, y);
   }
 
   /** Тарілки на фінальній сітці: пульс; три й більше — запуск бонусу. */

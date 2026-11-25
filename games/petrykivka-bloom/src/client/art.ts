@@ -22,7 +22,7 @@ export const PALETTE = {
 
 const S = 160; // розмір полотна символу
 
-function canvas(w = S, h = S): [HTMLCanvasElement, CanvasRenderingContext2D] {
+export function canvas(w = S, h = S): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -71,7 +71,7 @@ export function seed(
   }
 }
 
-function dot(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
+export function dot(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
   g.fillStyle = color;
