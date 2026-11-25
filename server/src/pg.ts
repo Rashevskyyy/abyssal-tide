@@ -82,8 +82,19 @@ export class PgRepository implements Repository {
     this.pool = new pg.Pool({ connectionString, max: 10 });
   }
 
+  /**
+   * Схема під advisory lock: кілька процесів (два екземпляри сервера, паралельні тести)
+   * можуть стартувати одночасно, а `create table if not exists` сам по собі від гонки не захищає.
+   */
   async migrate(): Promise<void> {
-    await this.pool.query(SCHEMA);
+    const c = await this.pool.connect();
+    try {
+      await c.query('select pg_advisory_lock(727011)');
+      await c.query(SCHEMA);
+    } finally {
+      await c.query('select pg_advisory_unlock(727011)').catch(() => undefined);
+      c.release();
+    }
   }
 
   async ensurePlayer(playerId: string, initial: PlayerState): Promise<void> {
